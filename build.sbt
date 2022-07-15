@@ -23,14 +23,18 @@ inThisBuild(List(
   sonatypeRepository := "https://s01.oss.sonatype.org/service/local"  
 ))
 
-lazy val root = project.in(file(".")).aggregate(parser.js, parser.jvm)
+lazy val root = project
+  .in(file("."))
+  .aggregate(parser.js, parser.jvm)
+  .settings(
+      publish / skip := true
+  )
 
 lazy val parser = crossProject(JVMPlatform, JSPlatform)
   .in(file("."))
   .settings(
     name := "outline-parser",
     scalacOptions += "-deprecation",
-    publish / skip := true,
     libraryDependencies ++= Seq(
       "io.github.apex-dev-tools" %%% "apex-types" % "1.0.0",
       "org.scalatest" %%% "scalatest" % "3.2.9" % "test"
