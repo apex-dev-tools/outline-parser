@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2021 FinancialForce.com, inc. All rights reserved.
+ */
 package com.financialforce.oparser.testutil
 
 import com.financialforce.oparser._
