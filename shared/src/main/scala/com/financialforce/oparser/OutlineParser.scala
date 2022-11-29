@@ -232,7 +232,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
       case (true, _) =>
         tokens.clear()
         consumeBlock()
-      case (finished, _) if !finished =>
+      case (false, _) =>
         consumeBlock()
     }
   }
