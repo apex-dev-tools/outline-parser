@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
 // If you disable this sbt-dynver pulled in by sbt-ci-release will take over
-ThisBuild / version := "1.0.0"
+ThisBuild / version := "1.1.0"
 
 inThisBuild(
   List(
