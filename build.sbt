@@ -1,34 +1,34 @@
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
 // If you disable this sbt-dynver pulled in by sbt-ci-release will take over
-ThisBuild / version := "1.0.0"
+ThisBuild / version := "1.1.0"
 
-inThisBuild(List(
-  description := "Apex outline parser",
-  organization := "io.github.apex-dev-tools",
-  homepage := Some(url("https://github.com/apex-dev-tools/outline-parser")),
-  licenses := List("BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")),
-  developers := List(
-    Developer(
-      "apexdevtools",
-      "Apex Dev Tools Team",
-      "apexdevtools@gmail.com",
-      url("https://github.com/apex-dev-tools")
-    )
-  ),
-  versionScheme := Some("strict"),
-  isSnapshot := false,
-  scalaVersion := "2.13.3",
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local"  
-))
+inThisBuild(
+  List(
+    description := "Apex outline parser",
+    organization := "io.github.apex-dev-tools",
+    homepage := Some(url("https://github.com/apex-dev-tools/outline-parser")),
+    licenses := List("BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")),
+    developers := List(
+      Developer(
+        "apexdevtools",
+        "Apex Dev Tools Team",
+        "apexdevtools@gmail.com",
+        url("https://github.com/apex-dev-tools")
+      )
+    ),
+    versionScheme := Some("strict"),
+    isSnapshot := false,
+    scalaVersion := "2.13.10",
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+  )
+)
 
 lazy val root = project
   .in(file("."))
   .aggregate(parser.js, parser.jvm)
-  .settings(
-      publish / skip := true
-  )
+  .settings(publish / skip := true)
 
 lazy val parser = crossProject(JVMPlatform, JSPlatform)
   .in(file("."))
@@ -36,8 +36,8 @@ lazy val parser = crossProject(JVMPlatform, JSPlatform)
     name := "outline-parser",
     scalacOptions += "-deprecation",
     libraryDependencies ++= Seq(
-      "io.github.apex-dev-tools" %%% "apex-types" % "1.0.0",
-      "org.scalatest" %%% "scalatest" % "3.2.9" % "test"
+      "io.github.apex-dev-tools" %%% "apex-types" % "1.1.0",
+      "org.scalatest"            %%% "scalatest"  % "3.2.9" % "test"
     )
   )
   .jvmSettings(
