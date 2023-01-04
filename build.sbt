@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
 // If you disable this sbt-dynver pulled in by sbt-ci-release will take over
-ThisBuild / version := "1.1.0"
+ThisBuild / version := "1.2.0"
 
 inThisBuild(
   List(
@@ -36,7 +36,7 @@ lazy val parser = crossProject(JVMPlatform, JSPlatform)
     name := "outline-parser",
     scalacOptions += "-deprecation",
     libraryDependencies ++= Seq(
-      "io.github.apex-dev-tools" %%% "apex-types" % "1.1.0",
+      "io.github.apex-dev-tools" %%% "apex-types" % "1.2.0",
       "org.scalatest"            %%% "scalatest"  % "3.2.9" % "test"
     )
   )
