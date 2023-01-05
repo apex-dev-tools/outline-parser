@@ -1,9 +1,9 @@
 inThisBuild(
   List(
-    description := "Apex outline parser",
+    description  := "Apex outline parser",
     organization := "io.github.apex-dev-tools",
-    homepage := Some(url("https://github.com/apex-dev-tools/outline-parser")),
-    licenses := List("BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")),
+    homepage     := Some(url("https://github.com/apex-dev-tools/outline-parser")),
+    licenses     := List("BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")),
     developers := List(
       Developer(
         "apexdevtools",
@@ -12,10 +12,10 @@ inThisBuild(
         url("https://github.com/apex-dev-tools")
       )
     ),
-    versionScheme := Some("strict"),
-    scalaVersion := "2.13.10",
+    versionScheme          := Some("strict"),
+    scalaVersion           := "2.13.10",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+    sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
   )
 )
 
