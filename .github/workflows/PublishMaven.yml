@@ -1,23 +1,30 @@
 name: Publish to Maven
+
 on:
   release:
-    types: [created]
-  workflow_dispatch:    
+    types: [ released ]
+  workflow_dispatch:
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
-
-      - name: Set up Node 14
-        uses: actions/setup-node@v3
         with:
-          node-version: 14        
+          fetch-depth: 0 # Fetch all history/tags
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 8
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
 
       - name: Publish package
-        run: |
-          sbt ci-release
+        run: sbt ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
           PGP_SECRET: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
