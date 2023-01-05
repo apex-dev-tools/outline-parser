@@ -1,8 +1,3 @@
-import sbtcrossproject.CrossPlugin.autoImport.crossProject
-
-// If you disable this sbt-dynver pulled in by sbt-ci-release will take over
-ThisBuild / version := "1.2.0"
-
 inThisBuild(
   List(
     description := "Apex outline parser",
@@ -18,17 +13,16 @@ inThisBuild(
       )
     ),
     versionScheme := Some("strict"),
-    isSnapshot := false,
     scalaVersion := "2.13.10",
     sonatypeCredentialHost := "s01.oss.sonatype.org",
     sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
   )
 )
 
-lazy val root = project
-  .in(file("."))
-  .aggregate(parser.js, parser.jvm)
-  .settings(publish / skip := true)
+lazy val pack = inputKey[Unit]("Publish specific local version")
+
+// Don't publish root
+publish / skip := true
 
 lazy val parser = crossProject(JVMPlatform, JSPlatform)
   .in(file("."))
@@ -52,3 +46,19 @@ lazy val parser = crossProject(JVMPlatform, JSPlatform)
       _.withModuleKind(ModuleKind.CommonJSModule)
     }
   )
+
+// Command to do a local release under a specific version
+// Defaults to last reachable tag (ignoring current commit) or 0.0.0
+// e.g. sbt "pack 1.2.3-SNAPSHOT" / sbt pack
+pack := {
+  import sbt.complete.Parsers.spaceDelimited
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  val v                 = args.headOption.getOrElse(previousStableVersion.value.getOrElse("0.0.0"))
+
+  val newState =
+    Project.extract(state.value).appendWithoutSession(Seq(ThisBuild / version := v), state.value)
+  val proj = Project.extract(newState)
+
+  proj.runTask(parser.jvm / publishLocal, newState)
+  proj.runTask(parser.js / publishLocal, newState)
+}
