@@ -1,70 +1,55 @@
 # Apex Outline Parser
 
- This parser extracts an outline from Apex class files. The outline provides structural information about the class and its inner classes without needing to parse code blocks. The performance of this parser is much better than a full parser, making it ideal for use when indexing or similar activities.
+This parser extracts an outline from Apex class files. The outline provides structural information about the class and its inner classes without needing to parse code blocks. The performance of this parser is much better than a full parser, making it ideal for use when indexing or similar activities.
 
 If you need access to a full syntax tree for Apex, SOQL or SOSL we recommend using the [apex-parser](https://github.com/apex-dev-tools/apex-parser) instead.
 
 ## Getting Started
 
-### Prerequisites
+### Installation
 
-- Java JDK 1.8
+Releases are available from [SonaType](https://s01.oss.sonatype.org). You will need to add the repository to your build tool.
 
-  - For OS X OpenJDK installed via brew is recommended
-    ```sh
-    brew tap adoptopenjdk/openjdk
-    brew install --cask adoptopenjdk8
-    ```
-  - For the correct java version to be used, JAVA_HOME must be set accordingly:
-    - E.g. To always select JDK 1.8, add the following to your bash/zsh profile
-      ```sh
-      export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
-      ```
+SBT:
 
-- [Scala build tool](https://www.scala-sbt.org/)
+  ```scala
+  project.settings(
+    // Replace %% with %%% to use ScalaJS build
+    libraryDependencies += "io.github.apex-dev-tools" %% "outline-parser" % "X.X.X"
+  )
+  ```
 
-```sh
-brew install sbt
-```
+Maven:
 
-- [Node >= v14](https://nodejs.org/en/) (optional for Javascript testing)
+  ```xml
+  <dependency>
+      <groupId>io.github.apex-dev-tools</groupId>
+      <artifactId>outline-parser</artifactId>
+      <version>X.Y.Z</version>
+  </dependency>
+  ```
 
+### Usage
 
-## Building
+The library does not currently provide a documented API. To understand how to use it we recommend looking at the test class `ApexParserCompare.scala` which is used to compare the output with our [full parser](https://github.com/apex-dev-tools/apex-parser) for Apex.
 
-```sh
-sbt package
-```
+## Development
 
-This will generate two outputs:
+### Building
 
-- jvm/target/scala-2.13/outline-parser_2.13-X.Y.Z.jar
-- js/target/scala-2.13/outline-parser_sjs1_2.13-X.Y.Z.jar
+The build is a cross project for JS and JVM; SBT commands are aggregated, but can also be executed separately with `sbt parserJVM/[cmd]` or `sbt parserJS/[cmd]`.
 
-These artifacts are best used from Scala code, although the jvm target maybe used with Java albeit with some difficulties mapping types between Java and Scala.
+Available build commands:
 
-## Usage
+* `sbt package` - Creates packaged jars for testing. e.g. `jvm/target/scala-2.13/outline-parser_2.13-X.Y.Z.jar`
+* `sbt pack` / `sbt "pack [version]"` - Do a local published release of the most recent tag or given value.
+  * **WARNING:** This can override the remote releases, clear your `~/.ivy2/local` directory to revert.
+* `sbt publishLocal` - Same as `pack` except it will generate snapshot versions.
+* `sbt test` - Execute full test run.
+* `sbt clean` - Removes most build files and artifacts.
 
-The library does not currently provide a documented API. To understand how to use it we recommend looking at the test class ApexParserCompare.scala which is used to compare the output with our [full parser](https://github.com/apex-dev-tools/apex-parser) for Apex.
+### Release
 
-# Developing
+Releases are automated via workflow on publishing a release. Create a `v` prefixed tag at the same time on the commit to be released (e.g. `v1.0.0`).
 
-## Intellij
-
-The Scala Intellij plugin has a number of useful features and integrations that make it highly recommended. Ensure you have installed and enabled it first.
-
-The Intellij project files are ignored in this repository, so for a clean repo we need to import and create an sbt project from it.
-
-1. In the IDE, `File > Close Project` if there is an existing project open.
-1. Select `Import Project` from the main menu, selecting this repo directory.
-1. Then `Import project from external model`, selecting `sbt`.
-1. Finally we need to select a JDK version if not already defaulted.
-1. You can enable auto import if desired to download dependencies as needed.
-
-After the initial sbt project load you should now be able to start development.
-
-### Building under Windows
-
-Install the following in addition to the requirements above `Git For Windows` and `nvm-windows`.
-
-The build commands documented above work from within a `Git Bash` session.
+Snapshot releases can also be created at any time by executing the `Publish` workflow on a branch. The versioning will be in the format `X.X.X+Y-yyyy-SNAPSHOT`; the latest tag followed by recent commit info.
