@@ -13,6 +13,9 @@ Releases are available from [SonaType](https://s01.oss.sonatype.org). You will n
 SBT:
 
   ```scala
+  // Add if not present
+  ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("releases")
+
   project.settings(
     // Replace %% with %%% to use ScalaJS build
     libraryDependencies += "io.github.apex-dev-tools" %% "outline-parser" % "X.X.X"
@@ -22,6 +25,16 @@ SBT:
 Maven:
 
   ```xml
+  <!-- In <repositories/> -->
+  <repository>
+    <id>oss.sonatype.org</id>
+    <url>https://s01.oss.sonatype.org/content/repositories/releases</url>
+    <releases>
+      <enabled>true</enabled>
+    </releases>
+  </repository>
+
+  <!-- In <dependencies/> -->
   <dependency>
       <groupId>io.github.apex-dev-tools</groupId>
       <artifactId>outline-parser</artifactId>
