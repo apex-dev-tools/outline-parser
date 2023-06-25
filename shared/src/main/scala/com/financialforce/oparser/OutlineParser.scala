@@ -6,6 +6,7 @@ package com.financialforce.oparser
 import com.financialforce.oparser.OutlineParser.singleCharacterTokens
 import com.financialforce.types.base.{Location, Position, PropertyBlock}
 
+import java.nio.charset.StandardCharsets
 import scala.annotation.tailrec
 import scala.collection.{BitSet, mutable}
 
@@ -213,7 +214,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     Parse.parseClassMember(classTypeDeclaration, tokens, t) match {
       case (true, classMembers) if classMembers.nonEmpty =>
         val startBlockPosition = Position(line, lineOffset, byteOffset)
-        val startPosition      = tokens(0).map(_.location.startPosition).getOrElse(startBlockPosition)
+        val startPosition = tokens(0).map(_.location.startPosition).getOrElse(startBlockPosition)
 
         tokens.clear()
         if (classMembers.length == 1 && classMembers.head.isInstanceOf[PropertyDeclaration])
@@ -221,13 +222,8 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             consumePropertyDeclaration()
         else
           consumeBlock()
-        classMembers.foreach(
-          m =>
-            m.setLocations(
-              startPosition,
-              startBlockPosition,
-              Position(line, lineOffset, byteOffset)
-            )
+        classMembers.foreach(m =>
+          m.setLocations(startPosition, startBlockPosition, Position(line, lineOffset, byteOffset))
         )
       case (true, _) =>
         tokens.clear()
@@ -515,28 +511,39 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
 
   private val byteBuffer = new mutable.StringBuilder(4)
   private def consumeCharacter(capture: Boolean = true): Unit = {
+
     if (capture)
       buffer.append(byteOffset, charOffset, line, lineOffset)
 
     if (charOffset + 1 == length)
       finished = true
     else {
-      charOffset += 1
-      currentChar = contents(charOffset)
-
-      val byteLength =
-        if (currentChar.toInt < 128) 1
-        else {
-          byteBuffer.setLength(0)
-          byteBuffer
-            .append(currentChar)
-            .toString()
-            .getBytes("UTF-8")
-            .length
+      currentChar = contents(charOffset + 1)
+      if (currentChar < 128) {
+        // Simple ASCII
+        charOffset += 1
+        byteOffset += 1
+        lineOffset += 1
+      } else {
+        byteBuffer.setLength(0)
+        if (
+          Character.isHighSurrogate(currentChar) && charOffset + 2 != length && Character
+            .isLowSurrogate(contents(charOffset + 2))
+        ) {
+          // UTF-16 Surrogate pair
+          byteBuffer.append(currentChar)
+          currentChar = contents(charOffset + 2)
+          byteBuffer.append(currentChar)
+          charOffset += 2
+          lineOffset += 1
+        } else {
+          // UTF-16
+          byteBuffer.append(currentChar)
+          charOffset += 1
+          lineOffset += 1
         }
-
-      byteOffset += byteLength
-      lineOffset += 1
+        byteOffset += byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
+      }
     }
   }
 
@@ -698,10 +705,10 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     }
   }
 
-  /**
-    * Read a token and return it
+  /** Read a token and return it
     *
-    * @return The token read
+    * @return
+    *   The token read
     */
   private def consumeToken(): Option[Token] = {
 
