@@ -84,7 +84,7 @@ object JorjeOutputCompare {
       val warnings = comparator.getWarnings
       if (warnings.nonEmpty) {
         withWarnings += 1
-        //TODO: Process warnings?
+        // TODO: Process warnings?
       } else {
         exactlyEqual += 1
       }
@@ -107,10 +107,9 @@ object JorjeOutputCompare {
       println("Directory")
       val s = Files.walk(absolutePath)
       s.filter(file => !Files.isDirectory(file))
-        .filter(
-          file =>
-            file.getFileName.toString.toLowerCase
-              .endsWith("cls") || file.getFileName.toString.toLowerCase.endsWith("-meta.xml")
+        .filter(file =>
+          file.getFileName.toString.toLowerCase
+            .endsWith("cls") || file.getFileName.toString.toLowerCase.endsWith("-meta.xml")
         )
         .toArray
         .map(_.asInstanceOf[Path])
@@ -123,7 +122,7 @@ object JorjeOutputCompare {
 
   private def getOutLineParserOutput(path: Path) = {
     val contentsString = getUTF8ContentsFromPath(path)
-    val result         = OutlineParser.parse(path.toString, contentsString, TestClassFactory, ctx = null)
+    val result = OutlineParser.parse(path.toString, contentsString, TestClassFactory, ctx = null)
     (result._1, result._2, result._3)
   }
 

@@ -93,11 +93,10 @@ object Parser {
       s.toScala(LazyList)
         .filter(file => !Files.isDirectory(file))
         .filter(file => file.getFileName.toString.toLowerCase.endsWith("cls"))
-        .map(
-          p =>
-            Future {
-              parseFileWithStatus(display, test, onlyANTLR, p)
-            }
+        .map(p =>
+          Future {
+            parseFileWithStatus(display, test, onlyANTLR, p)
+          }
         )
     } else {
       println("Single file")

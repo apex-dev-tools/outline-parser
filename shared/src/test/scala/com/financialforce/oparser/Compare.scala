@@ -75,12 +75,12 @@ object Compare {
 
     if (!(first._annotations sameElements second._annotations)) {
       throw new Exception(s"Different annotation ${first._annotations
-        .mkString("Array(", ", ", ")")} != ${second._annotations.mkString("Array(", ", ", ")")}")
+          .mkString("Array(", ", ", ")")} != ${second._annotations.mkString("Array(", ", ", ")")}")
     }
 
     if (!(first._modifiers sameElements second._modifiers)) {
       throw new Exception(s"Different modifiers ${first._modifiers
-        .mkString("Array(", ", ", ")")} != ${second._modifiers.mkString("Array(", ", ", ")")}")
+          .mkString("Array(", ", ", ")")} != ${second._modifiers.mkString("Array(", ", ", ")")}")
     }
 
     if (first.id != second.id) {
@@ -146,12 +146,12 @@ object Compare {
 
     if (!(first.annotations sameElements second.annotations)) {
       throw new Exception(s"Different annotation ${first.annotations
-        .mkString("Array(", ", ", ")")} != ${second.annotations.mkString("Array(", ", ", ")")}")
+          .mkString("Array(", ", ", ")")} != ${second.annotations.mkString("Array(", ", ", ")")}")
     }
 
     if (!(first.modifiers sameElements second.modifiers)) {
       throw new Exception(s"Different modifiers ${first.modifiers
-        .mkString("Array(", ", ", ")")} != ${second.modifiers.mkString("Array(", ", ", ")")}")
+          .mkString("Array(", ", ", ")")} != ${second.modifiers.mkString("Array(", ", ", ")")}")
     }
 
     if (first.id != second.id) {
@@ -176,12 +176,12 @@ object Compare {
 
     if (!(first.annotations sameElements second.annotations)) {
       throw new Exception(s"Different annotation ${first.annotations
-        .mkString("Array(", ", ", ")")} != ${second.annotations.mkString("Array(", ", ", ")")}")
+          .mkString("Array(", ", ", ")")} != ${second.annotations.mkString("Array(", ", ", ")")}")
     }
 
     if (!(first.modifiers sameElements second.modifiers)) {
       throw new Exception(s"Different modifiers ${first.modifiers
-        .mkString("Array(", ", ", ")")} != ${second.modifiers.mkString("Array(", ", ", ")")}")
+          .mkString("Array(", ", ", ")")} != ${second.modifiers.mkString("Array(", ", ", ")")}")
     }
 
     if (first.id != second.id) {
