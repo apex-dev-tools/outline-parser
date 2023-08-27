@@ -7,19 +7,22 @@ import com.nawforce.pkgforce.path.PathLike
 
 object ClassScanner {
 
-  def scan(path: PathLike): Map[String, Array[Byte]] = {
-    val files = if (path.isDirectory) {
+  def load(path: PathLike): Map[String, Array[Byte]] = {
+    scan(path)
+      .flatMap(file => {
+        file.readBytes().map(c => (file.toString, c)).toOption
+      })
+      .toMap
+  }
+
+  def scan(path: PathLike): Seq[PathLike] = {
+    if (path.isDirectory) {
       scanDirectory(path)
         .filterNot(_.isDirectory)
         .filter(_.toString.endsWith(".cls"))
     } else {
       Seq(path)
     }
-    files
-      .flatMap(file => {
-        file.readBytes().map(c => (file.toString, c)).toOption
-      })
-      .toMap
   }
 
   private def scanDirectory(path: PathLike): Seq[PathLike] = {

@@ -10,7 +10,7 @@ class SampleTest extends AnyFunSuite {
   private val sampleDir = AntlrOps.samplesDir()
   assert(sampleDir.nonEmpty, "Set SAMPLES to location of apex-samples repo")
 
-  forAll(ClassScanner.scan(sampleDir.get)) { pathAndContent =>
+  forAll(ClassScanner.load(sampleDir.get)) { pathAndContent =>
     {
       val path    = pathAndContent._1
       val content = pathAndContent._2

@@ -50,15 +50,15 @@ lazy val parser = crossProject(JSPlatform, JVMPlatform)
   .jvmSettings(
     build       := buildJVM.value,
     Test / fork := true,
-    libraryDependencies ++= Seq("com.github.nawforce" % "uber-apex-jorje" % "1.0.0" % Test),
     packageOptions += Package.ManifestAttributes(
       "Class-Path" -> (Compile / dependencyClasspath).value.files.map(_.getName.trim).mkString(" "),
       "Implementation-Build" -> java.time.Instant.now().toEpochMilli.toString
     )
   )
   .jsSettings(
-    build                           := buildJs(Compile / fullLinkJS).value,
-    Dev / build                     := buildJs(Compile / fastLinkJS).value,
+    build       := buildJs(Compile / fullLinkJS).value,
+    Dev / build := buildJs(Compile / fastLinkJS).value,
+    libraryDependencies ++= Seq("net.exoego" %%% "scala-js-nodejs-v14" % "0.12.0"),
     Test / parallelExecution        := false,
     scalaJSUseMainModuleInitializer := false,
     scalaJSLinkerConfig ~= {
