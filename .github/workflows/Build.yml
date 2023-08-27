@@ -28,7 +28,18 @@ jobs:
       run: sbt scalafmtCheck # Does not check test files currently
 
     - name: Build
-      run: sbt compile
+      run: sbt build
+
+    - name: Checkout samples repo
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        repository: apex-dev-tools/apex-samples
+        path: apex-samples
+        ref: v1.0.2
+
+    - name: Set samples env
+      run: echo "SAMPLES=$GITHUB_WORKSPACE/apex-samples" >> "$GITHUB_ENV"
 
     - name: Test
       run: sbt test

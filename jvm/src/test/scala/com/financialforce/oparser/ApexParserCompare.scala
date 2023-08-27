@@ -3,7 +3,7 @@
  */
 package com.financialforce.oparser
 
-import com.financialforce.oparser.testutil.Antlr
+import com.financialforce.oparser.testutil.AntlrParser
 
 import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.atomic.AtomicLong
@@ -194,7 +194,7 @@ object Parser {
     val antlrType = if (test || onlyANTLR) {
       try {
         start = System.currentTimeMillis()
-        val decl = Antlr.parse(path.toString, contentsBytes)
+        val decl = AntlrParser.parse(path.toString, contentsBytes)
         addAntlrTime(System.currentTimeMillis() - start)
         decl
       } catch {
