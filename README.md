@@ -62,6 +62,14 @@ Available build commands:
 * `sbt clean` - Removes most build files and artifacts.
 * `sbt scalafmtAll` - Reformat code files using scalafmt.
 
+### Testing Samples
+
+The test suite requires access to the [apex-samples](https://github.com/apex-dev-tools/apex-samples). To download run
+
+    git clone -b v1.0.2 --recurse-submodules
+
+Set the environment variable `SAMPLES` to the installed location.
+
 ### Release
 
 Releases are automated via workflow on publishing a release. Create a `v` prefixed tag at the same time on the commit to be released (e.g. `v1.0.0`).
