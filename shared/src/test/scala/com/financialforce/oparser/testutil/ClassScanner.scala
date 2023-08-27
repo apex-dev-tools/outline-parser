@@ -1,8 +1,9 @@
+/*
+ * Copyright (c) 2023 Certinia Inc. All rights reserved.
+ */
 package com.financialforce.oparser.testutil
 
 import com.nawforce.pkgforce.path.PathLike
-
-import java.nio.file.{Files, Path, Paths}
 
 object ClassScanner {
 
