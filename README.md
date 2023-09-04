@@ -60,6 +60,7 @@ Available build commands:
 * `sbt publishLocal` - Same as `pack` except it will generate snapshot versions.
 * `sbt test` - Execute full test run.
 * `sbt clean` - Removes most build files and artifacts.
+* `sbt scalafmtAll` - Reformat code files using scalafmt.
 
 ### Release
 

@@ -145,7 +145,7 @@ final class Tokens {
       false
   }
 
-  //noinspection IndexBoundsCheck
+  // noinspection IndexBoundsCheck
   def apply(index: Int): Option[Token] = {
     // Avoid lift() here, it's expensive
     if (index >= tokens.length) None else Some(tokens(index))

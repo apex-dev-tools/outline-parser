@@ -179,14 +179,14 @@ object Antlr {
       .map(l => new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments))
       .orElse(
         Option(ctx.SET())
-          .map(
-            l => new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments)
+          .map(l =>
+            new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments)
           )
       )
       .orElse(
         Option(ctx.MAP())
-          .map(
-            l => new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments)
+          .map(l =>
+            new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments)
           )
       )
       .orElse(Option(ctx.id()).map(l => new TypeNameSegment(toId(l), typeArguments)))
@@ -333,15 +333,14 @@ object Antlr {
     val formalParameterList =
       Option(ctx.formalParameters())
         .flatMap(fp => Option(fp.formalParameterList()))
-        .map(
-          fpl =>
-            ArraySeq.unsafeWrapArray(
-              fpl
-                .formalParameter()
-                .asScala
-                .map(antlrFormalParameter)
-                .toArray
-            )
+        .map(fpl =>
+          ArraySeq.unsafeWrapArray(
+            fpl
+              .formalParameter()
+              .asScala
+              .map(antlrFormalParameter)
+              .toArray
+          )
         )
         .getOrElse(FormalParameter.emptyArraySeq)
 
@@ -362,15 +361,14 @@ object Antlr {
     val formalParameterList =
       Option(ctx.formalParameters())
         .flatMap(fp => Option(fp.formalParameterList()))
-        .map(
-          fpl =>
-            ArraySeq.unsafeWrapArray(
-              fpl
-                .formalParameter()
-                .asScala
-                .map(antlrFormalParameter)
-                .toArray
-            )
+        .map(fpl =>
+          ArraySeq.unsafeWrapArray(
+            fpl
+              .formalParameter()
+              .asScala
+              .map(antlrFormalParameter)
+              .toArray
+          )
         )
         .getOrElse(FormalParameter.emptyArraySeq)
 
@@ -399,15 +397,14 @@ object Antlr {
     val formalParameterList =
       Option(ctx.formalParameters())
         .flatMap(fp => Option(fp.formalParameterList()))
-        .map(
-          fpl =>
-            ArraySeq.unsafeWrapArray(
-              fpl
-                .formalParameter()
-                .asScala
-                .map(antlrFormalParameter)
-                .toArray
-            )
+        .map(fpl =>
+          ArraySeq.unsafeWrapArray(
+            fpl
+              .formalParameter()
+              .asScala
+              .map(antlrFormalParameter)
+              .toArray
+          )
         )
         .getOrElse(FormalParameter.emptyArraySeq)
 

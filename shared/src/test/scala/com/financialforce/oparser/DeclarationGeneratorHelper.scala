@@ -21,8 +21,8 @@ trait DeclarationGeneratorHelper {
     typeNameWithArguments: Map[String, Option[Array[UnresolvedTypeRef]]],
     totalSubscripts: Int = 0
   ): UnresolvedTypeRef = {
-    val typNames: Array[TypeNameSegment] = typeNameWithArguments map {
-      case (name, args) => toTypeNames(name, args)
+    val typNames: Array[TypeNameSegment] = typeNameWithArguments map { case (name, args) =>
+      toTypeNames(name, args)
     } to Array
     toTypeRef(typNames, totalSubscripts)
   }
