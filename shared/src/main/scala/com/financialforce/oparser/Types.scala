@@ -369,7 +369,7 @@ object Parse {
     index = newIndex
     md.add(typeRef)
 
-    if (tokens.matches(index, Tokens.LParenStr)) {
+    if (nextToken.matches(Tokens.LBraceStr) && tokens.matches(index, Tokens.LParenStr)) {
       (true, addConstructor(index, tokens, md, ctd).toSeq)
     } else if (tokens.findIndex(index, token => token.matches(Tokens.EqualsStr)) != -1) {
       // Consume fields in one go

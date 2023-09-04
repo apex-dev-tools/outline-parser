@@ -152,4 +152,46 @@ class SmokeTest extends AnyFunSpec {
     assert(method.modifiers sameElements Array(Modifier("public")))
   }
 
+  it("errors on constructor without body terminated with semi-colon") {
+    val content =
+      """public class Dummy {
+        |  public Dummy();
+        |}
+        |""".stripMargin
+
+    val thrown = intercept[Exception] {
+      parse(content)
+    }
+    assert(thrown.getMessage == "Unrecognised method [2.3 -> 2.16] public Dummy ( )")
+  }
+
+  it("errors on constructor without body terminated with comment & semi-colon") {
+    val content =
+      """public class Dummy {
+        |  public Dummy()
+        |  /* A comment */
+        |  ;
+        |}
+        |""".stripMargin
+
+    val thrown = intercept[Exception] {
+      parse(content)
+    }
+    assert(thrown.getMessage == "Unrecognised method [2.3 -> 2.16] public Dummy ( )")
+  }
+
+
+  it("errors on constructor without body terminated by class end") {
+    val content =
+      """public class Dummy {
+        |  public Dummy()
+        |}
+        |""".stripMargin
+
+    val thrown = intercept[Exception] {
+      parse(content)
+    }
+    assert(thrown.getMessage == "Unexpected '}'")
+  }
+
 }
