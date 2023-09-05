@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2023 Certinia Inc. All rights reserved.
+ */
 package com.financialforce.oparser
 
 import com.financialforce.oparser.testutil.{AntlrOps, AntlrParser, ClassScanner}
