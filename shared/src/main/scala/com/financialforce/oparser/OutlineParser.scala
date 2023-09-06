@@ -44,7 +44,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     reset()
     try {
       parseTypeDeclaration()
-      (true, None, typeDeclaration)
+      (typeDeclaration.nonEmpty, None, typeDeclaration)
     } catch {
       case ex: Throwable => (false, Some(ex.getMessage), typeDeclaration)
     }

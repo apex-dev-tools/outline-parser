@@ -5,14 +5,7 @@
 package com.financialforce.oparser
 
 import com.financialforce.types._
-import com.financialforce.types.base.{
-  Annotation,
-  IdWithLocation,
-  Location,
-  Modifier,
-  TypeNameSegment,
-  TypeRef
-}
+import com.financialforce.types.base._
 
 import scala.collection.immutable.ArraySeq
 import scala.collection.mutable

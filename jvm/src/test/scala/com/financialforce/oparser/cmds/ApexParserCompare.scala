@@ -1,25 +1,24 @@
 /*
  * Copyright (c) 2021 FinancialForce.com, inc. All rights reserved.
  */
-package com.financialforce.oparser
+package com.financialforce.oparser.cmds
 
-import com.financialforce.oparser.testutil.Antlr
+import com.financialforce.oparser._
+import com.financialforce.oparser.testutil.{AntlrParser, ClassScanner}
+import com.nawforce.pkgforce.path.PathLike
+import com.nawforce.runtime.platform.Path
 
-import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.atomic.AtomicLong
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Future}
-import scala.jdk.StreamConverters._
+import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
 
-object JVMParser {
+// Command for comparing outputs with apex-parser on one or many files
+// NOTE: This needs to live in 'test' due to apex-ls dependency
+object ApexParserCompare {
   def main(args: Array[String]): Unit = {
-    System.exit(Parser.run(args))
+    System.exit(ApexParserCompare.run(args))
   }
-}
 
-object Parser {
-  def run(args: Array[String]): Int = {
+  private def run(args: Array[String]): Int = {
     val options    = Set("-seq", "-notest", "-display", "-antlr")
     val sequential = args.contains("-seq")
     val test       = !args.contains("-notest") && !args.contains("-antlr")
@@ -46,23 +45,12 @@ object Parser {
     0
   }
 
-  def parseSeq(display: Boolean, test: Boolean, onlyANTLR: Boolean, inPath: String): Int = {
-    val absolutePath = Paths.get(Option(inPath).getOrElse("")).toAbsolutePath.normalize()
-    println("SEQUENTIAL " + absolutePath.toString + " JVM")
+  private def parseSeq(display: Boolean, test: Boolean, onlyANTLR: Boolean, inPath: String): Int = {
+    val absolutePath = Path(inPath)
+    println("SEQUENTIAL " + absolutePath.toString)
 
-    val start = System.currentTimeMillis()
-    val files: Seq[Path] = if (Files.isDirectory(absolutePath)) {
-      println("Directory")
-      val s = Files.walk(absolutePath)
-      s.filter(file => !Files.isDirectory(file))
-        .filter(file => file.getFileName.toString.toLowerCase.endsWith("cls"))
-        .toArray
-        .map(_.asInstanceOf[Path])
-        .toIndexedSeq
-    } else {
-      println("Single file")
-      Seq(absolutePath)
-    }
+    val start        = System.currentTimeMillis()
+    val files        = ClassScanner.scan(absolutePath)
     val timeForFiles = System.currentTimeMillis() - start
 
     files.foreach(f => {
@@ -82,72 +70,56 @@ object Parser {
     0
   }
 
-  def parsePar(display: Boolean, test: Boolean, onlyANTLR: Boolean, inPath: String): Int = {
-    val absolutePath = Paths.get(Option(inPath).getOrElse("")).toAbsolutePath.normalize()
-    println("PARALLEL " + absolutePath.toString + " JVM")
+  private def parsePar(display: Boolean, test: Boolean, onlyANTLR: Boolean, inPath: String): Int = {
+    val absolutePath = Path(inPath)
+    println("PARALLEL " + absolutePath.toString)
 
-    val start = System.currentTimeMillis()
-    val futures: Seq[Future[Int]] = if (Files.isDirectory(absolutePath)) {
-      println("Directory")
-      val s = Files.walk(absolutePath)
-      s.toScala(LazyList)
-        .filter(file => !Files.isDirectory(file))
-        .filter(file => file.getFileName.toString.toLowerCase.endsWith("cls"))
-        .map(p =>
-          Future {
-            parseFileWithStatus(display, test, onlyANTLR, p)
-          }
-        )
-    } else {
-      println("Single file")
-      Seq(Future {
-        parseFileWithStatus(display, test, onlyANTLR, absolutePath)
-      })
-    }
+    val start        = System.currentTimeMillis()
+    val files        = ClassScanner.scan(absolutePath)
+    val timeForFiles = System.currentTimeMillis() - start
 
-    val all = Future
-      .sequence(futures)
-      .andThen(_ => {
-        println(s"Number of files: ${futures.length}")
-        println(s"Total Length: ${totalLength.longValue()} bytes")
-        println(s"Read File Time: ${totalReadFileTime.longValue() / 1e3}s")
-        println(s"Convert File Time: ${totalConvertFileTime.longValue() / 1e3}s")
-        println(s"Parse Time: ${totalParseTime.longValue() / 1e3}s")
-        println(s"Antlr Time: ${totalAntlrTime.longValue() / 1e3}s")
-        println(s"Elapsed Time: ${(System.currentTimeMillis() - start) / 1e3}s")
-      })
+    val all    = files.par.map(p => parseFileWithStatus(display, test, onlyANTLR, p))
+    val result = if (all.exists(_ != 0)) 2 else 0
 
-    val result = Await.result(all, 100.second)
-    if (result.exists(_ != 0)) 2 else 0
+    println(s"Time to get file list ${timeForFiles / 1e3}s")
+    println(s"Number of files: ${files.length}")
+    println(s"Total Length: ${totalLength.longValue()} bytes")
+    println(s"Read File Time: ${totalReadFileTime.longValue() / 1e3}s")
+    println(s"Convert File Time: ${totalConvertFileTime.longValue() / 1e3}s")
+    println(s"Parse Time: ${totalParseTime.longValue() / 1e3}s")
+    println(s"Antlr Time: ${totalAntlrTime.longValue() / 1e3}s")
+    println(s"Elapsed Time: ${(System.currentTimeMillis() - start) / 1e3}s")
+
+    result
   }
 
   private val totalLength = new AtomicLong(0)
 
-  def addLength(l: Int): Unit = {
+  private def addLength(l: Int): Unit = {
     totalLength.addAndGet(l)
   }
 
   private val totalParseTime = new AtomicLong(0)
 
-  def addParseTime(t: Long): Unit = {
+  private def addParseTime(t: Long): Unit = {
     totalParseTime.addAndGet(t)
   }
 
   private val totalAntlrTime = new AtomicLong(0)
 
-  def addAntlrTime(t: Long): Unit = {
+  private def addAntlrTime(t: Long): Unit = {
     totalAntlrTime.addAndGet(t)
   }
 
   private val totalReadFileTime = new AtomicLong(0)
 
-  def addReadFileTime(t: Long): Unit = {
+  private def addReadFileTime(t: Long): Unit = {
     totalReadFileTime.addAndGet(t)
   }
 
   private val totalConvertFileTime = new AtomicLong(0)
 
-  def addConvertFileTime(t: Long): Unit = {
+  private def addConvertFileTime(t: Long): Unit = {
     totalConvertFileTime.addAndGet(t)
   }
 
@@ -155,22 +127,27 @@ object Parser {
     display: Boolean,
     test: Boolean,
     onlyANTLR: Boolean,
-    path: Path
+    file: PathLike
   ): Int = {
     try {
-      parseFile(display, test, onlyANTLR, path)
+      parseFile(display, test, onlyANTLR, file)
       0
     } catch {
       case ex: Throwable =>
-        System.err.println(s"Failed parsing: $path")
+        System.err.println(s"Failed parsing: $file")
         ex.printStackTrace()
         2
     }
   }
 
-  private def parseFile(display: Boolean, test: Boolean, onlyANTLR: Boolean, path: Path): Unit = {
+  private def parseFile(
+    display: Boolean,
+    test: Boolean,
+    onlyANTLR: Boolean,
+    file: PathLike
+  ): Unit = {
     var start         = System.currentTimeMillis()
-    val contentsBytes = Files.readAllBytes(path)
+    val contentsBytes = file.readBytes().getOrElse(Array())
     addReadFileTime(System.currentTimeMillis() - start)
     start = System.currentTimeMillis()
     val contentsString: String = new String(contentsBytes, "utf8")
@@ -179,9 +156,13 @@ object Parser {
     val td = if (test || !onlyANTLR) {
       start = System.currentTimeMillis()
       val (success, reason, decl) =
-        OutlineParser.parse(path.toString, contentsString, TestClassFactory, null)
-      if (!success)
-        println(s"outline-parser failed: $path ${reason.get}")
+        OutlineParser.parse(file.toString, contentsString, TestClassFactory, null)
+      if (!success) {
+        if (reason.nonEmpty)
+          println(s"outline-parser failed: $file ${reason.get}")
+        else
+          println(s"outline-parser failed: $file No reason given")
+      }
       addParseTime(System.currentTimeMillis() - start)
 
       if (display) {
@@ -194,12 +175,12 @@ object Parser {
     val antlrType = if (test || onlyANTLR) {
       try {
         start = System.currentTimeMillis()
-        val decl = Antlr.parse(path.toString, contentsBytes)
+        val decl = AntlrParser.parse(file.toString, contentsBytes)
         addAntlrTime(System.currentTimeMillis() - start)
         decl
       } catch {
         case ex: Exception =>
-          println(s"apex-parser failed: $path $ex")
+          println(s"apex-parser failed: $file $ex")
           None
       }
     } else None

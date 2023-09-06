@@ -1,51 +1,117 @@
-inThisBuild(
-  List(
-    description  := "Apex outline parser",
-    organization := "io.github.apex-dev-tools",
-    homepage     := Some(url("https://github.com/apex-dev-tools/outline-parser")),
-    licenses     := List("BSD-3-Clause" -> url("https://opensource.org/licenses/BSD-3-Clause")),
-    developers := List(
-      Developer(
-        "apexdevtools",
-        "Apex Dev Tools Team",
-        "apexdevtools@gmail.com",
-        url("https://github.com/apex-dev-tools")
-      )
-    ),
-    versionScheme          := Some("strict"),
-    scalaVersion           := "2.13.10",
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
+import org.scalajs.linker.interface.Report
+
+import scala.sys.process._
+
+ThisBuild / scalaVersion         := "2.13.10"
+ThisBuild / description          := "Salesforce Apex outline parser"
+ThisBuild / organization         := "io.github.apex-dev-tools"
+ThisBuild / organizationHomepage := Some(url("https://github.com/apex-dev-tools/outline-parser"))
+ThisBuild / homepage             := Some(url("https://github.com/apex-dev-tools/outline-parser"))
+ThisBuild / licenses := List(
+  "BSD-3-Clause" -> new URL("https://opensource.org/licenses/BSD-3-Clause")
+)
+ThisBuild / developers := List(
+  Developer(
+    "apexdevtools",
+    "Apex Dev Tools Team",
+    "apexdevtools@gmail.com",
+    url("https://github.com/apex-dev-tools")
   )
 )
+ThisBuild / versionScheme          := Some("strict")
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
+ThisBuild / resolvers += Resolver.mavenLocal
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("releases")
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
-lazy val pack = inputKey[Unit]("Publish specific local version")
+lazy val build = taskKey[File]("Build artifacts")
+lazy val pack  = inputKey[Unit]("Publish specific local version")
+lazy val Dev   = config("dev") extend Compile
 
 // Don't publish root
 publish / skip := true
 
-lazy val parser = crossProject(JVMPlatform, JSPlatform)
+// Limit to sequential test for both cross projects
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
+lazy val parser = crossProject(JSPlatform, JVMPlatform)
   .in(file("."))
+  .configs(Dev)
   .settings(
     name := "outline-parser",
     scalacOptions += "-deprecation",
     libraryDependencies ++= Seq(
       "io.github.apex-dev-tools" %%% "apex-types" % "1.2.0",
-      "org.scalatest"            %%% "scalatest"  % "3.2.9" % "test"
+      "org.scalatest"            %%% "scalatest"  % "3.2.9" % Test,
+      "io.github.apex-dev-tools" %%% "apex-ls"    % "4.3.0" % Test
     )
   )
   .jvmSettings(
-    libraryDependencies ++= Seq(
-      "com.github.nawforce"      % "uber-apex-jorje" % "1.0.0" % Test,
-      "io.github.apex-dev-tools" % "apex-parser"     % "3.0.0" % Test
+    build       := buildJVM.value,
+    Test / fork := true,
+    packageOptions += Package.ManifestAttributes(
+      "Class-Path" -> (Compile / dependencyClasspath).value.files.map(_.getName.trim).mkString(" "),
+      "Implementation-Build" -> java.time.Instant.now().toEpochMilli.toString
     )
   )
   .jsSettings(
+    build       := buildJs(Compile / fullLinkJS).value,
+    Dev / build := buildJs(Compile / fastLinkJS).value,
+    libraryDependencies ++= Seq("net.exoego" %%% "scala-js-nodejs-v14" % "0.12.0"),
+    Test / parallelExecution        := false,
     scalaJSUseMainModuleInitializer := false,
     scalaJSLinkerConfig ~= {
       _.withModuleKind(ModuleKind.CommonJSModule)
     }
   )
+
+lazy val buildJVM = Def.task {
+  val targetDir = crossTarget.value
+  val targetJar = (Compile / Keys.`package`).value
+
+  // Delete extra jars from target dir
+  IO.delete((targetDir * "*.jar").get().filterNot(_.equals(targetJar)))
+
+  // Copy jar deps to target for easier testing
+  val files = (Compile / dependencyClasspath).value.files map { f =>
+    f -> targetDir / f.getName
+  }
+  IO.copy(files, CopyOptions().withOverwrite(true))
+
+  targetJar
+}
+
+def buildJs(jsTask: TaskKey[Attributed[Report]]): Def.Initialize[Task[File]] = Def.task {
+  def exec: (String, File) => Unit = run(streams.value.log)(_, _)
+
+  // Depends on scalaJS fast/full linker output
+  val t = jsTask.value
+
+  val targetDir  = crossTarget.value
+  val targetFile = (jsTask / scalaJSLinkerOutputDirectory).value / "main.js"
+  val npmDir     = baseDirectory.value / "npm"
+
+  val files: Map[File, File] = Map(
+    // Update target with NPM modules (for testing)
+    npmDir / "package.json" -> targetDir / "package.json"
+  )
+
+  IO.copy(files, CopyOptions().withOverwrite(true))
+
+  // Install modules in NPM
+  exec("npm ci", npmDir)
+
+  // Update target with NPM modules (for testing)
+  IO.delete(targetDir / "node_modules")
+  IO.copyDirectory(
+    npmDir / "node_modules",
+    targetDir / "node_modules",
+    CopyOptions().withOverwrite(true)
+  )
+
+  targetFile
+}
 
 // Command to do a local release under a specific version
 // Defaults to last reachable tag (ignoring current commit) or 0.0.0
@@ -61,4 +127,15 @@ pack := {
 
   proj.runTask(parser.jvm / publishLocal, newState)
   proj.runTask(parser.js / publishLocal, newState)
+}
+
+// Run a command and log to provided logger
+def run(log: ProcessLogger)(cmd: String, cwd: File): Unit = {
+  val shell: Seq[String] =
+    if (sys.props("os.name").contains("Windows")) Seq("cmd", "/c") else Seq("bash", "-c")
+  val exitCode = Process(shell :+ cmd, cwd) ! log
+  if (exitCode > 0) {
+    log.err(s"Process exited with non-zero exit code: $exitCode")
+    sys.exit(exitCode)
+  }
 }
