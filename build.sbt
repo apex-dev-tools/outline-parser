@@ -42,9 +42,9 @@ lazy val parser = crossProject(JSPlatform, JVMPlatform)
     name := "outline-parser",
     scalacOptions += "-deprecation",
     libraryDependencies ++= Seq(
-      "io.github.apex-dev-tools" %%% "apex-types" % "1.2.0",
+      "io.github.apex-dev-tools" %%% "apex-types" % "1.3.0",
       "org.scalatest"            %%% "scalatest"  % "3.2.9" % Test,
-      "io.github.apex-dev-tools" %%% "apex-ls"    % "4.3.0" % Test
+      "io.github.apex-dev-tools" %%% "apex-ls"    % "4.3.1" % Test
     )
   )
   .jvmSettings(
