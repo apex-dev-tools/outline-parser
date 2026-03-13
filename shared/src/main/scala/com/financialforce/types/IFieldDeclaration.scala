@@ -5,7 +5,9 @@ package com.financialforce.types
 
 import com.financialforce.types.base._
 
-/** Class field, note custom IVariable equality does not include location information or property blocks. */
+/** Class field, note custom IVariable equality does not include location information or property
+  * blocks.
+  */
 trait IFieldDeclaration extends IBodyDeclaration with IVariable {
   override var typeRef: TypeRef
   override def id: IdWithLocation

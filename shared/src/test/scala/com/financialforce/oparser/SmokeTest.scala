@@ -180,7 +180,6 @@ class SmokeTest extends AnyFunSpec {
     assert(thrown.getMessage == "Unrecognised method [2.3 -> 2.16] public Dummy ( )")
   }
 
-
   it("errors on constructor without body terminated by class end") {
     val content =
       """public class Dummy {

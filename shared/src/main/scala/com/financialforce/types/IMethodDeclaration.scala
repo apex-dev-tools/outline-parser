@@ -28,8 +28,8 @@ trait IMethodDeclaration extends IBodyDeclaration with AnnotationsAndModifiers {
     (other.annotations sameElements annotations) &&
     (other.modifiers sameElements modifiers) && (
       (other.typeRef.isEmpty && typeRef.isEmpty) ||
-      (other.typeRef.nonEmpty && typeRef.nonEmpty &&
-      other.typeRef.get.sameRef(typeRef.get))
+        (other.typeRef.nonEmpty && typeRef.nonEmpty &&
+          other.typeRef.get.sameRef(typeRef.get))
     ) &&
     other.id == id &&
     other.formalParameters == formalParameters

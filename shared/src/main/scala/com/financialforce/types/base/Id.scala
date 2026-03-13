@@ -10,8 +10,9 @@ trait Id {
   def lowerCaseName: String = name.toLowerCase
 }
 
-/** Identifier with a location in a file from where it was extracted. Location does not hold path information
-  * so that needs to be available from some other context, such as the ITypeDeclaration that this is found in.
+/** Identifier with a location in a file from where it was extracted. Location does not hold path
+  * information so that needs to be available from some other context, such as the ITypeDeclaration
+  * that this is found in.
   */
 trait IdWithLocation extends Id {
   def location: Location

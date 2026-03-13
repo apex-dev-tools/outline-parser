@@ -7,8 +7,8 @@ import com.financialforce.types.base._
 
 import scala.util.hashing.MurmurHash3
 
-/** Common handling for Variable like elements (fields, properties and formal parameters) that have similar members.
-  * Note: custom equality does not include location information.
+/** Common handling for Variable like elements (fields, properties and formal parameters) that have
+  * similar members. Note: custom equality does not include location information.
   */
 trait IVariable extends AnnotationsAndModifiers {
   var typeRef: TypeRef

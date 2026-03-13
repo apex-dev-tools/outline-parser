@@ -13,7 +13,9 @@ package object types {
     def tidyWhitespace: String = value.trim.replaceAll(" +", " ")
   }
 
-  /** Simple cache for interning Arrays of values. This needs special handling as Array uses reference equality. */
+  /** Simple cache for interning Arrays of values. This needs special handling as Array uses
+    * reference equality.
+    */
   private[types] class ArrayInternCache[T] {
     private var cache = mutable.HashMap[ArraySeq[T], Array[T]]()
 

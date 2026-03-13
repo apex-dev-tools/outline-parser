@@ -7,7 +7,9 @@ import com.financialforce.types.base._
 
 import scala.collection.immutable.ArraySeq
 
-/** Class, enum, interface type declaration. May be used as a resolved TypeRef. Uses Identity equality. */
+/** Class, enum, interface type declaration. May be used as a resolved TypeRef. Uses Identity
+  * equality.
+  */
 trait ITypeDeclaration extends TypeRef with AnnotationsAndModifiers {
   def paths: Array[String]
   def location: Location

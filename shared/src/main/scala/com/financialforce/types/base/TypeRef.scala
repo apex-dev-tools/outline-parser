@@ -7,8 +7,9 @@ import scala.collection.immutable.ArraySeq
 import scala.collection.mutable.ArrayBuffer
 import scala.util.hashing.MurmurHash3
 
-/** Reference holder to a type. Typically TypeRefs start as a UnresolvedTypeRef and are replaced by a ITypeDeclaration
-  * during a resolve phase. The fullName can be used to determine equivalence between these two types of TypeRef.
+/** Reference holder to a type. Typically TypeRefs start as a UnresolvedTypeRef and are replaced by
+  * a ITypeDeclaration during a resolve phase. The fullName can be used to determine equivalence
+  * between these two types of TypeRef.
   */
 trait TypeRef {
   def fullName: String
@@ -31,8 +32,9 @@ object TypeRef {
   }
 }
 
-/** A reference to a type in raw form as it appears in source files. This just captures the segments in the TypeRef
-  * and any array subscripts. We expect a resolve process to use this information to locate an ITypeDeclaration.
+/** A reference to a type in raw form as it appears in source files. This just captures the segments
+  * in the TypeRef and any array subscripts. We expect a resolve process to use this information to
+  * locate an ITypeDeclaration.
   */
 final case class UnresolvedTypeRef(typeNameSegments: Array[TypeNameSegment], arraySubscripts: Int)
     extends TypeRef {
@@ -56,8 +58,8 @@ final case class UnresolvedTypeRef(typeNameSegments: Array[TypeNameSegment], arr
 
 object UnresolvedTypeRef {
 
-  /** Convert a string into a UnresolvedTypeRef. Note: This is really only intended for internal use as the
-    * error handling is limited.
+  /** Convert a string into a UnresolvedTypeRef. Note: This is really only intended for internal use
+    * as the error handling is limited.
     */
   def apply(typeName: String): Either[String, UnresolvedTypeRef] = {
 

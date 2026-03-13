@@ -10,8 +10,9 @@ case class Position(line: Int, lineOffset: Int, byteOffset: Int) {
   }
 }
 
-/** Location of a range in a source file, logically a start and end position but unrolled to reduce object overhead.
-  * Note: We don't enforce constraints such as end>=start so consumers should take care, see also Location.default.
+/** Location of a range in a source file, logically a start and end position but unrolled to reduce
+  * object overhead. Note: We don't enforce constraints such as end>=start so consumers should take
+  * care, see also Location.default.
   */
 case class Location(
   startLine: Int,

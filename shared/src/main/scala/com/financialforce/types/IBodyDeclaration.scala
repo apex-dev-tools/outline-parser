@@ -5,8 +5,9 @@ package com.financialforce.types
 
 import com.financialforce.types.base.{IdWithLocation, Location}
 
-/** Common handling for elements that can appear in a class body. bodyLocation define the location of the element
-  * while blockLocation defines the location of any nested block which will be a subpart of the bodyLocation.
+/** Common handling for elements that can appear in a class body. bodyLocation define the location
+  * of the element while blockLocation defines the location of any nested block which will be a
+  * subpart of the bodyLocation.
   */
 trait IBodyDeclaration {
   def id: IdWithLocation
