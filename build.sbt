@@ -3,7 +3,7 @@ import org.scalajs.linker.interface.Report
 import scala.sys.process._
 
 ThisBuild / scalaVersion         := "2.13.10"
-ThisBuild / description          := "Salesforce Apex outline parser"
+ThisBuild / description          := "Salesforce Apex outline parser with type definitions"
 ThisBuild / organization         := "io.github.apex-dev-tools"
 ThisBuild / organizationHomepage := Some(url("https://github.com/apex-dev-tools/outline-parser"))
 ThisBuild / homepage             := Some(url("https://github.com/apex-dev-tools/outline-parser"))
@@ -42,7 +42,6 @@ lazy val parser = crossProject(JSPlatform, JVMPlatform)
     name := "outline-parser",
     scalacOptions += "-deprecation",
     libraryDependencies ++= Seq(
-      "io.github.apex-dev-tools" %%% "apex-types" % "1.3.0",
       "org.scalatest"            %%% "scalatest"  % "3.2.9" % Test,
       "io.github.apex-dev-tools" %%% "apex-ls"    % "4.3.1" % Test
     )

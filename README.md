@@ -2,6 +2,8 @@
 
 This parser extracts an outline from Apex class files. The outline provides structural information about the class and its inner classes without needing to parse code blocks. The performance of this parser is much better than a full parser, making it ideal for use when indexing or similar activities.
 
+This library includes the Apex type definitions (interfaces and base types) that were previously published separately as `apex-types`. Starting with version 2.0.0, these are bundled together to simplify dependency management.
+
 If you need access to a full syntax tree for Apex, SOQL or SOSL we recommend using the [apex-parser](https://github.com/apex-dev-tools/apex-parser) instead.
 
 ## Getting Started
