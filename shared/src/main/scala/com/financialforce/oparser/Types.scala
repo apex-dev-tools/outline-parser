@@ -570,7 +570,8 @@ object Parse {
     fields.toSeq
   }
 
-  private def tokenToModifier(token: Token): Modifier = Modifier(token.contents)
+  private def tokenToModifier(token: Token): Modifier =
+    Modifier(token.contents, Some(token.location))
 
   private def tokenToId(token: Token): LocatableIdToken =
     LocatableIdToken(token.contents, token.location)
@@ -673,6 +674,7 @@ object Parse {
   ): Int = {
     if (!tokens(startIndex).exists(_.matches(Tokens.AtSignStr))) return startIndex
 
+    val startLocation = tokens.get(startIndex).location
     val names         = new mutable.ArrayBuffer[LocatableIdToken]()
     var (index, name) = getId(startIndex + 1, tokens)
     name.foreach(names.append)
@@ -699,7 +701,11 @@ object Parse {
       Some(builder.toString())
     } else None
 
-    accum.append(Annotation(qName.toString, parameters))
+    // Capture full annotation location from @ through parameters
+    val endLocation  = if (index > 0) tokens.get(index - 1).location else startLocation
+    val fullLocation = Location.span(startLocation, endLocation)
+
+    accum.append(Annotation(qName.toString, parameters, Some(fullLocation)))
 
     index
   }
@@ -747,8 +753,13 @@ object Parse {
         // Combine to make sharing modifier
         if (modifiers == null)
           modifiers = new mutable.ArrayBuffer[Modifier]()
+        val spannedLocation =
+          Location.span(tokens.get(index).location, tokens.get(index + 1).location)
         modifiers.append(
-          Modifier(s"${tokens.get(index).contents} ${tokens.get(index + 1).contents}")
+          Modifier(
+            s"${tokens.get(index).contents} ${tokens.get(index + 1).contents}",
+            Some(spannedLocation)
+          )
         )
         index += 2
       } else {
