@@ -17,12 +17,14 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: 8
+        java-version: 17
         cache: 'sbt'
+
+    - uses: sbt/setup-sbt@v1
 
     - uses: actions/setup-node@v4
       with:
-        node-version: 16
+        node-version: 22
 
     - name: FormatCheck
       run: sbt scalafmtCheck # Does not check test files currently
@@ -31,12 +33,12 @@ jobs:
       run: sbt build
 
     - name: Checkout samples repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         repository: apex-dev-tools/apex-samples
         path: apex-samples
-        ref: v1.0.2
+        ref: v1.4.0
 
     - name: Set samples env
       run: echo "SAMPLES=$GITHUB_WORKSPACE/apex-samples" >> "$GITHUB_ENV"
