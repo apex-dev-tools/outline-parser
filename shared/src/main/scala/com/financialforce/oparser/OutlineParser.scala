@@ -152,6 +152,11 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
               consumeClassBody(classTypeDeclaration)
+              // Consume trailing newline to match ANTLR's inclusive behavior
+              if (
+                !atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn)
+              )
+                consumeNewline()
               classTypeDeclaration.setLocation(
                 Location(startPosition, Position(line, lineOffset, byteOffset))
               )
@@ -220,8 +225,12 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
         if (classMembers.length == 1 && classMembers.head.isInstanceOf[PropertyDeclaration])
           classMembers.head.asInstanceOf[PropertyDeclaration].propertyBlocks =
             consumePropertyDeclaration()
-        else
+        else {
           consumeBlock()
+          // Consume trailing newline to match ANTLR's inclusive behavior for member bodies
+          if (!atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn))
+            consumeNewline()
+        }
         classMembers.foreach(m =>
           m.setLocations(startPosition, startBlockPosition, Position(line, lineOffset, byteOffset))
         )
@@ -392,6 +401,11 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
               consumeInterfaceBody(interfaceTypeDeclaration)
+              // Consume trailing newline to match ANTLR's inclusive behavior
+              if (
+                !atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn)
+              )
+                consumeNewline()
               interfaceTypeDeclaration.setLocation(
                 Location(startPosition, Position(line, lineOffset, byteOffset))
               )
@@ -453,6 +467,11 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
               consumeEnumBody(enumTypeDeclaration)
+              // Consume trailing newline to match ANTLR's inclusive behavior
+              if (
+                !atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn)
+              )
+                consumeNewline()
               enumTypeDeclaration.setLocation(
                 Location(startPosition, Position(line, lineOffset, byteOffset))
               )
@@ -498,7 +517,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     finished = false
     charOffset = 0
     byteOffset = 0
-    lineOffset = 1
+    lineOffset = 0
     currentChar = contents(charOffset)
     line = 1
     buffer.clear()
@@ -515,9 +534,21 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     if (capture)
       buffer.append(byteOffset, charOffset, line, lineOffset)
 
-    if (charOffset + 1 == length)
+    if (charOffset + 1 == length) {
+      // Consuming the last character - increment offsets to position one-past-the-end
+      if (currentChar < 128) {
+        charOffset += 1
+        byteOffset += 1
+        lineOffset += 1
+      } else {
+        byteBuffer.setLength(0)
+        byteBuffer.append(currentChar)
+        charOffset += 1
+        lineOffset += 1
+        byteOffset += byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
+      }
       finished = true
-    else {
+    } else {
       currentChar = contents(charOffset + 1)
       if (currentChar < 128) {
         // Simple ASCII
@@ -620,12 +651,12 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
       consumeCharacter(false)
       consumeCharacter(false)
       line += 1
-      lineOffset = 1
+      lineOffset = 0
       true
     } else if (currentChar == Tokens.Newline) {
       consumeCharacter(false)
       line += 1
-      lineOffset = 1
+      lineOffset = 0
       true
     } else {
       consumeCharacter(false)

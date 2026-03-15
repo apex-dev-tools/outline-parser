@@ -55,13 +55,7 @@ object FormalParameter {
     typeRef: TypeRef,
     id: LocatableIdToken
   ): FormalParameter = {
-    new FormalParameter(
-      Annotation.intern(annotations),
-      Modifier.intern(modifiers),
-      typeRef,
-      id.name,
-      id.location
-    )
+    new FormalParameter(annotations, modifiers, typeRef, id.name, id.location)
   }
 }
 
@@ -176,12 +170,7 @@ object ConstructorDeclaration {
     qName: QualifiedName,
     formalParameterList: ArraySeq[FormalParameter]
   ): ConstructorDeclaration = {
-    new ConstructorDeclaration(
-      Annotation.intern(annotations),
-      Modifier.intern(modifiers),
-      qName,
-      formalParameterList
-    )
+    new ConstructorDeclaration(annotations, modifiers, qName, formalParameterList)
   }
 }
 
@@ -205,13 +194,7 @@ object MethodDeclaration {
     id: LocatableIdToken,
     formalParameterList: ArraySeq[FormalParameter]
   ): MethodDeclaration = {
-    new MethodDeclaration(
-      Annotation.intern(annotations),
-      Modifier.intern(modifiers),
-      typeRef,
-      id,
-      formalParameterList
-    )
+    new MethodDeclaration(annotations, modifiers, typeRef, id, formalParameterList)
   }
 }
 
@@ -235,13 +218,7 @@ object PropertyDeclaration {
     propertyBlocks: Array[PropertyBlock],
     id: LocatableIdToken
   ): PropertyDeclaration = {
-    new PropertyDeclaration(
-      Annotation.intern(annotations),
-      Modifier.intern(modifiers),
-      typeRef,
-      propertyBlocks,
-      id
-    )
+    new PropertyDeclaration(annotations, modifiers, typeRef, propertyBlocks, id)
   }
 }
 
@@ -263,7 +240,7 @@ object FieldDeclaration {
     typeRef: TypeRef,
     id: LocatableIdToken
   ): FieldDeclaration = {
-    new FieldDeclaration(Annotation.intern(annotations), Modifier.intern(modifiers), typeRef, id)
+    new FieldDeclaration(annotations, modifiers, typeRef, id)
   }
 }
 
@@ -557,11 +534,12 @@ object Parse {
 
       if (startLocation.isDefined) {
         // WARNING: I don't think there is a code path where this is not overwritten
+        // endByteOffset is now exclusive, so it already points one-past-the-end
         field.setBlockLocation(
           Position(
             startLocation.get.startLine,
             startLocation.get.startLineOffset,
-            startLocation.get.endByteOffset + 1
+            startLocation.get.endByteOffset
           ),
           Position(endLocation.startLine, endLocation.startLineOffset, endLocation.startByteOffset)
         )

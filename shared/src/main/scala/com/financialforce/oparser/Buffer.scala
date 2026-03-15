@@ -23,7 +23,14 @@ class Buffer(backing: String) {
     (
       if (capturing) backing.substring(startCharOffset, endCharOffset + 1)
       else emptyString,
-      Location(startLine, startLineOffset, startByteOffset, endLine, endLineOffset, endByteOffset)
+      Location(
+        startLine,
+        startLineOffset,
+        startByteOffset,
+        endLine,
+        endLineOffset + 1,
+        endByteOffset + 1
+      )
     )
   }
 

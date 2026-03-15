@@ -25,13 +25,16 @@ object AntlrOps {
 
   implicit class ContextOps(context: ParserRuleContext) {
     def location: Location = {
+      // ANTLR uses [start, end) convention with exclusive end positions
+      // We don't calculate byte offsets here as that would be too expensive
+      // The comparison code will ignore byte offsets for ANTLR-generated locations
       Location(
         context.start.getLine,
         context.start.getCharPositionInLine,
-        context.start.getStartIndex,
+        0,  // byte offset not calculated
         context.stop.getLine,
         context.stop.getCharPositionInLine + context.stop.getText.length,
-        context.stop.getStopIndex
+        0   // byte offset not calculated
       )
     }
   }

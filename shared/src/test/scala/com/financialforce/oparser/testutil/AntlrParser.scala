@@ -4,13 +4,13 @@
 package com.financialforce.oparser.testutil
 
 import com.financialforce.oparser._
+import com.financialforce.oparser.testutil.AntlrOps._
 import com.financialforce.types.base._
 import com.financialforce.types.{ITypeDeclaration, base}
-import com.nawforce.apexparser.ApexParser
 import com.nawforce.runtime.parsers.{CodeParser, SourceData}
 import com.nawforce.runtime.platform.Path
-import com.financialforce.oparser.testutil.AntlrOps._
-import com.nawforce.apexparser.ApexParser.ModifierContext
+import io.github.apexdevtools.apexparser.ApexParser
+import io.github.apexdevtools.apexparser.ApexParser.ModifierContext
 
 import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
@@ -27,7 +27,8 @@ object AntlrParser {
   def parse(path: String, contents: Array[Byte]): Option[ITypeDeclaration] = {
 
     // We re-use apex-ls CodeParser for JS/JVM portability
-    val codeParser  = CodeParser(Path(path), SourceData(new String(contents)))
+    // Pass bytes directly to SourceData to ensure byte offsets match the original file
+    val codeParser  = CodeParser(Path(path), SourceData(contents))
     val issuesAndCU = codeParser.parseClass()
     issuesAndCU.issues.headOption.map(issue => throw new Exception(issue.asString))
 
@@ -72,9 +73,12 @@ object AntlrParser {
     val len      = modifier.length
     // Add a space back in, it may not have been a single space but very likely it was
     if (len >= 7 && modifier.toLowerCase.endsWith("sharing")) {
-      Modifier(modifier.substring(0, len - 7) + " " + modifier.substring(len - 7))
+      Modifier(
+        modifier.substring(0, len - 7) + " " + modifier.substring(len - 7),
+        Some(ctx.location)
+      )
     } else
-      Modifier(modifier)
+      Modifier(modifier, Some(ctx.location))
   }
 
   def antlrAnnotation(ctx: ApexParser.AnnotationContext): Annotation = {
@@ -86,7 +90,7 @@ object AntlrParser {
       .map(CodeParser.getText)
       .orElse(CodeParser.toScala(ctx.elementValuePairs()).map(CodeParser.getText))
       .orElse(if (CodeParser.getText(ctx).endsWith("()")) Some("") else None)
-    Annotation(qName.toString, args)
+    Annotation(qName.toString, args, Some(ctx.location))
   }
 
   def antlrTypeList(ctx: ApexParser.TypeListContext): ArraySeq[TypeRef] = {

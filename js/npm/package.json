@@ -1,7 +1,7 @@
 {
   "name": "@apexdevtools/outline-parser",
   "dependencies": {
-    "@apexdevtools/apex-parser": "^3.3.0"
+    "@apexdevtools/apex-parser": "^4.3.1"
   },
   "engines": {
     "node": ">=14.0.0"
