@@ -12,6 +12,7 @@ metals.sbt
 .bloop/
 .metals/
 .vscode/
+.claude/
 target/
 
 
