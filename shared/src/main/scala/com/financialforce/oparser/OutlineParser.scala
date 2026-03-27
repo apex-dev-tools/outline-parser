@@ -152,11 +152,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
               consumeClassBody(classTypeDeclaration)
-              // Consume trailing newline to match ANTLR's inclusive behavior
-              if (
-                !atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn)
-              )
-                consumeNewline()
+              consumeTrailingNewline()
               classTypeDeclaration.setLocation(
                 Location(startPosition, Position(line, lineOffset, byteOffset))
               )
@@ -227,9 +223,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             consumePropertyDeclaration()
         else {
           consumeBlock()
-          // Consume trailing newline to match ANTLR's inclusive behavior for member bodies
-          if (!atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn))
-            consumeNewline()
+          consumeTrailingNewline()
         }
         classMembers.foreach(m =>
           m.setLocations(startPosition, startBlockPosition, Position(line, lineOffset, byteOffset))
@@ -401,11 +395,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
               consumeInterfaceBody(interfaceTypeDeclaration)
-              // Consume trailing newline to match ANTLR's inclusive behavior
-              if (
-                !atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn)
-              )
-                consumeNewline()
+              consumeTrailingNewline()
               interfaceTypeDeclaration.setLocation(
                 Location(startPosition, Position(line, lineOffset, byteOffset))
               )
@@ -467,11 +457,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
               consumeEnumBody(enumTypeDeclaration)
-              // Consume trailing newline to match ANTLR's inclusive behavior
-              if (
-                !atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn)
-              )
-                consumeNewline()
+              consumeTrailingNewline()
               enumTypeDeclaration.setLocation(
                 Location(startPosition, Position(line, lineOffset, byteOffset))
               )
@@ -531,27 +517,29 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
   private val byteBuffer = new mutable.StringBuilder(4)
   private def consumeCharacter(capture: Boolean = true): Unit = {
 
-    if (capture)
-      buffer.append(byteOffset, charOffset, line, lineOffset)
-
     if (charOffset + 1 == length) {
       // Consuming the last character - increment offsets to position one-past-the-end
-      if (currentChar < 128) {
-        charOffset += 1
-        byteOffset += 1
-        lineOffset += 1
+      val charByteLength = if (currentChar < 128) {
+        1
       } else {
         byteBuffer.setLength(0)
         byteBuffer.append(currentChar)
-        charOffset += 1
-        lineOffset += 1
-        byteOffset += byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
+        byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
       }
+
+      if (capture)
+        buffer.append(byteOffset, charOffset, line, lineOffset, charByteLength)
+
+      charOffset += 1
+      byteOffset += charByteLength
+      lineOffset += 1
       finished = true
     } else {
       currentChar = contents(charOffset + 1)
       if (currentChar < 128) {
         // Simple ASCII
+        if (capture)
+          buffer.append(byteOffset, charOffset, line, lineOffset, 1)
         charOffset += 1
         byteOffset += 1
         lineOffset += 1
@@ -561,21 +549,34 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           Character.isHighSurrogate(currentChar) && charOffset + 2 != length && Character
             .isLowSurrogate(contents(charOffset + 2))
         ) {
-          // UTF-16 Surrogate pair
+          // UTF-16 Surrogate pair (2 UTF-16 chars, but 1 Unicode codepoint)
           byteBuffer.append(currentChar)
           currentChar = contents(charOffset + 2)
           byteBuffer.append(currentChar)
+          val charByteLength = byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
+          if (capture)
+            buffer.append(byteOffset, charOffset, line, lineOffset, charByteLength, charCount = 2)
           charOffset += 2
+          byteOffset += charByteLength
           lineOffset += 1
         } else {
           // UTF-16
           byteBuffer.append(currentChar)
+          val charByteLength = byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
+          if (capture)
+            buffer.append(byteOffset, charOffset, line, lineOffset, charByteLength)
           charOffset += 1
+          byteOffset += charByteLength
           lineOffset += 1
         }
-        byteOffset += byteBuffer.toString().getBytes(StandardCharsets.UTF_8).length
       }
     }
+  }
+
+  private def consumeTrailingNewline(): Unit = {
+    // Consume trailing newline to match ANTLR's inclusive behavior
+    if (!atEnd() && (currentChar == Tokens.Newline || currentChar == Tokens.CarriageReturn))
+      consumeNewline()
   }
 
   private def isAtComment: Boolean = {

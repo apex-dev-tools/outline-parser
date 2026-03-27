@@ -13,9 +13,10 @@ class Buffer(backing: String) {
   private var endLineOffset   = 0
   private var startCharOffset = 0
   private var endCharOffset   = 0
-  private var startByteOffset = 0
-  private var endByteOffset   = 0
-  private var capturing       = false
+  private var startByteOffset    = 0
+  private var endByteOffset      = 0
+  private var lastCharByteLength = 1
+  private var capturing          = false
 
   private val emptyString = ""
 
@@ -29,7 +30,7 @@ class Buffer(backing: String) {
         startByteOffset,
         endLine,
         endLineOffset + 1,
-        endByteOffset + 1
+        endByteOffset + lastCharByteLength
       )
     )
   }
@@ -43,10 +44,11 @@ class Buffer(backing: String) {
     endLineOffset = 0
     startByteOffset = 0
     endByteOffset = 0
+    lastCharByteLength = 1
     capturing = false
   }
 
-  def append(byteOffset: Int, charOffset: Int, line: Int, lineOffset: Int): Unit = {
+  def append(byteOffset: Int, charOffset: Int, line: Int, lineOffset: Int, charByteLength: Int, charCount: Int = 1): Unit = {
     if (!capturing) {
       capturing = true
       startByteOffset = byteOffset
@@ -55,9 +57,10 @@ class Buffer(backing: String) {
       startLineOffset = lineOffset
     }
     endByteOffset = byteOffset
-    endCharOffset = charOffset
+    endCharOffset = charOffset + charCount - 1  // For surrogate pairs, this will be charOffset + 1
     endLine = line
     endLineOffset = lineOffset
+    lastCharByteLength = charByteLength
   }
 
 }

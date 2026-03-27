@@ -379,7 +379,7 @@ object Parse {
   def parseEnumMember(etd: IMutableTypeDeclaration, tokens: Tokens): Seq[LocatableIdToken] = {
     if (tokens.isEmpty) return Seq.empty
 
-    val constant = tokenToId(tokens.head)
+    val constant = LocatableIdToken(tokens.head.contents, tokens.head.location)
     val field    = FieldDeclaration(Array(), Array(Modifier(Tokens.StaticStr)), etd, constant)
     etd.appendField(field)
     Seq(constant)
@@ -431,7 +431,7 @@ object Parse {
       throw new Exception(s"Unrecognised method ${tokens.toString()}")
     }
 
-    val id                           = tokenToId(tokens.get(startIndex))
+    val id                           = LocatableIdToken(tokens.get(startIndex).contents, tokens.get(startIndex).location)
     val (index, formalParameterList) = parseFormalParameterList(startIndex + 1, tokens)
     if (index < tokens.length || formalParameterList.isEmpty) {
       throw new Exception(s"Unrecognised method ${tokens.toString()}")
@@ -449,7 +449,7 @@ object Parse {
     ctd: IMutableTypeDeclaration
   ): Option[PropertyDeclaration] = {
 
-    val id    = tokenToId(tokens.get(startIndex))
+    val id    = LocatableIdToken(tokens.get(startIndex).contents, tokens.get(startIndex).location)
     val index = startIndex + 1
 
     if (index < tokens.length) {
@@ -517,7 +517,7 @@ object Parse {
     var startLocation: Option[Location] = None
     var endLocation                     = Location.default
     while (index < tokens.length) {
-      val id = tokenToId(tokens.get(index))
+      val id = LocatableIdToken(tokens.get(index).contents, tokens.get(index).location)
 
       val field = FieldDeclaration(md.annotations, md.modifiers, md.typeRef.get, id)
       ctd.appendField(field)
@@ -548,17 +548,12 @@ object Parse {
     fields.toSeq
   }
 
-  private def tokenToModifier(token: Token): Modifier =
-    Modifier(token.contents, Some(token.location))
-
-  private def tokenToId(token: Token): LocatableIdToken =
-    LocatableIdToken(token.contents, token.location)
 
   private def getId(startIndex: Int, tokens: Tokens): (Int, Option[LocatableIdToken]) = {
     if (startIndex >= tokens.length) {
       (startIndex, None)
     } else if (tokens.get(startIndex).isInstanceOf[LocatableIdToken]) {
-      val id = tokenToId(tokens.get(startIndex))
+      val id = LocatableIdToken(tokens.get(startIndex).contents, tokens.get(startIndex).location)
       (startIndex + 1, Some(id))
     } else {
       (startIndex, None)
@@ -577,7 +572,7 @@ object Parse {
   ): (Int, Option[TypeNameSegment]) = {
     tokens(startIndex) match {
       case Some(token: LocatableIdToken) =>
-        val id                         = tokenToId(token)
+        val id                         = LocatableIdToken(token.contents, token.location)
         val (nextIndex, typeArguments) = parseTypeArguments(startIndex + 1, tokens)
         (nextIndex, Some(TypeNameSegment(id, typeArguments)))
       case _ => (startIndex, None)
@@ -722,7 +717,7 @@ object Parse {
       } else if (modifierTokenStrs.contains(tokens.get(index).contents.toLowerCase)) {
         if (modifiers == null)
           modifiers = new mutable.ArrayBuffer[Modifier]()
-        modifiers.append(tokenToModifier(tokens.get(index)))
+        modifiers.append(Modifier(tokens.get(index).contents, Some(tokens.get(index).location)))
         index += 1
       } else if (
         sharingModifiers.contains(tokens.get(index).contents.toLowerCase())
