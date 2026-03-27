@@ -2,7 +2,7 @@ import org.scalajs.linker.interface.Report
 
 import scala.sys.process._
 
-ThisBuild / scalaVersion         := "2.13.10"
+ThisBuild / scalaVersion         := "2.13.17"
 ThisBuild / description          := "Salesforce Apex outline parser with type definitions"
 ThisBuild / organization         := "io.github.apex-dev-tools"
 ThisBuild / organizationHomepage := Some(url("https://github.com/apex-dev-tools/outline-parser"))
@@ -18,12 +18,9 @@ ThisBuild / developers := List(
     url("https://github.com/apex-dev-tools")
   )
 )
-ThisBuild / versionScheme          := Some("strict")
-ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-ThisBuild / sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
+ThisBuild / versionScheme := Some("strict")
 ThisBuild / resolvers += Resolver.mavenLocal
-ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("releases")
-ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
+ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
 
 // Java 17 development with Java 8 runtime compatibility
 ThisBuild / javacOptions ++= Seq("-source", "8", "-target", "8")
