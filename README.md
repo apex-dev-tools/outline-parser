@@ -83,7 +83,7 @@ To run under node use:
 For Java:
 
     sbt parserJVM/build
-    java -jar jvm/target/scala-2.13/outline-parser_*.jar com.financialforce.oparser.cmds.ApexParseBatch path    
+    java -jar jvm/target/scala-2.13/outline-parser_*.jar io.github.apexdevtools.oparser.cmds.ApexParseBatch path    
 
 ### Release
 
