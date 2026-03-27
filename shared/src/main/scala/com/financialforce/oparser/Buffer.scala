@@ -7,12 +7,12 @@ import com.financialforce.types.base.Location
 
 class Buffer(backing: String) {
 
-  private var startLine       = 0
-  private var startLineOffset = 0
-  private var endLine         = 0
-  private var endLineOffset   = 0
-  private var startCharOffset = 0
-  private var endCharOffset   = 0
+  private var startLine          = 0
+  private var startLineOffset    = 0
+  private var endLine            = 0
+  private var endLineOffset      = 0
+  private var startCharOffset    = 0
+  private var endCharOffset      = 0
   private var startByteOffset    = 0
   private var endByteOffset      = 0
   private var lastCharByteLength = 1
@@ -48,7 +48,14 @@ class Buffer(backing: String) {
     capturing = false
   }
 
-  def append(byteOffset: Int, charOffset: Int, line: Int, lineOffset: Int, charByteLength: Int, charCount: Int = 1): Unit = {
+  def append(
+    byteOffset: Int,
+    charOffset: Int,
+    line: Int,
+    lineOffset: Int,
+    charByteLength: Int,
+    charCount: Int = 1
+  ): Unit = {
     if (!capturing) {
       capturing = true
       startByteOffset = byteOffset
@@ -57,7 +64,7 @@ class Buffer(backing: String) {
       startLineOffset = lineOffset
     }
     endByteOffset = byteOffset
-    endCharOffset = charOffset + charCount - 1  // For surrogate pairs, this will be charOffset + 1
+    endCharOffset = charOffset + charCount - 1 // For surrogate pairs, this will be charOffset + 1
     endLine = line
     endLineOffset = lineOffset
     lastCharByteLength = charByteLength

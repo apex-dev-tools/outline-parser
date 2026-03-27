@@ -431,7 +431,7 @@ object Parse {
       throw new Exception(s"Unrecognised method ${tokens.toString()}")
     }
 
-    val id                           = LocatableIdToken(tokens.get(startIndex).contents, tokens.get(startIndex).location)
+    val id = LocatableIdToken(tokens.get(startIndex).contents, tokens.get(startIndex).location)
     val (index, formalParameterList) = parseFormalParameterList(startIndex + 1, tokens)
     if (index < tokens.length || formalParameterList.isEmpty) {
       throw new Exception(s"Unrecognised method ${tokens.toString()}")
@@ -547,7 +547,6 @@ object Parse {
     }
     fields.toSeq
   }
-
 
   private def getId(startIndex: Int, tokens: Tokens): (Int, Option[LocatableIdToken]) = {
     if (startIndex >= tokens.length) {
