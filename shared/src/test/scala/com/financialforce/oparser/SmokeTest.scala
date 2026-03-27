@@ -19,8 +19,9 @@ class SmokeTest extends AnyFunSpec {
 
   def extractLocation(contents: String, location: Location): String = {
     val bytes = contents.getBytes(StandardCharsets.UTF_8)
+    // Location uses [start, end) convention with exclusive endByteOffset
     new String(
-      bytes.slice(location.startByteOffset, location.endByteOffset + 1),
+      bytes.slice(location.startByteOffset, location.endByteOffset),
       StandardCharsets.UTF_8
     )
   }
@@ -162,7 +163,7 @@ class SmokeTest extends AnyFunSpec {
     val thrown = intercept[Exception] {
       parse(content)
     }
-    assert(thrown.getMessage == "Unrecognised method [2.3 -> 2.16] public Dummy ( )")
+    assert(thrown.getMessage == "Unrecognised method [2.2 -> 2.16] public Dummy ( )")
   }
 
   it("errors on constructor without body terminated with comment & semi-colon") {
@@ -177,7 +178,7 @@ class SmokeTest extends AnyFunSpec {
     val thrown = intercept[Exception] {
       parse(content)
     }
-    assert(thrown.getMessage == "Unrecognised method [2.3 -> 2.16] public Dummy ( )")
+    assert(thrown.getMessage == "Unrecognised method [2.2 -> 2.16] public Dummy ( )")
   }
 
   it("errors on constructor without body terminated by class end") {

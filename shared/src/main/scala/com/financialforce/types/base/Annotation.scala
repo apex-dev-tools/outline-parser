@@ -3,20 +3,20 @@
  */
 package com.financialforce.types.base
 
-import com.financialforce.types.ArrayInternCache
-
 import scala.util.hashing.MurmurHash3
 
 /** Annotation element, name is case-insensitive, parameters are unparsed. */
-case class Annotation(name: String, parameters: Option[String]) {
+case class Annotation(name: String, parameters: Option[String], location: Option[Location] = None) {
   override def equals(obj: Any): Boolean = {
     val other = obj.asInstanceOf[Annotation]
     name.equalsIgnoreCase(other.name) &&
     parameters.getOrElse("").equalsIgnoreCase(other.parameters.getOrElse(""))
+    // Note: location intentionally excluded from equality
   }
 
   override def hashCode(): Int = {
     MurmurHash3.orderedHash(Seq(name.toLowerCase(), parameters.getOrElse("")))
+    // Note: location intentionally excluded from hash
   }
 
   override def toString: String = {
@@ -24,13 +24,6 @@ case class Annotation(name: String, parameters: Option[String]) {
   }
 }
 
-/** Caching support for Arrays of annotations. */
 object Annotation {
   final val emptyArray = Array[Annotation]()
-
-  private val cache = new ArrayInternCache[Annotation]()
-
-  def intern(annotations: Array[Annotation]): Array[Annotation] = {
-    cache.intern(annotations)
-  }
 }

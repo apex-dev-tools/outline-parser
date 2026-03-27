@@ -4,7 +4,22 @@
 
 package com.financialforce.oparser
 
+import com.financialforce.types.base.Location
+
 object Compare {
+
+  // Compare locations ignoring byte offsets (ANTLR doesn't calculate them for performance)
+  private def locationsMatch(loc1: Option[Location], loc2: Option[Location]): Boolean = {
+    (loc1, loc2) match {
+      case (Some(l1), Some(l2)) =>
+        l1.startLine == l2.startLine &&
+        l1.startLineOffset == l2.startLineOffset &&
+        l1.endLine == l2.endLine &&
+        l1.endLineOffset == l2.endLineOffset
+      case (None, None) => true
+      case _ => false
+    }
+  }
 
   def compareClassTypeDeclarations(
     first: TestClassTypeDeclaration,
@@ -78,9 +93,27 @@ object Compare {
           .mkString("Array(", ", ", ")")} != ${second._annotations.mkString("Array(", ", ", ")")}")
     }
 
+    // Compare annotation locations (ignoring byte offsets)
+    first._annotations.zip(second._annotations).foreach { case (a1, a2) =>
+      if (!locationsMatch(a1.location, a2.location)) {
+        throw new Exception(
+          s"Different annotation location for '${a1.name}': ${a1.location} != ${a2.location}"
+        )
+      }
+    }
+
     if (!(first._modifiers sameElements second._modifiers)) {
       throw new Exception(s"Different modifiers ${first._modifiers
           .mkString("Array(", ", ", ")")} != ${second._modifiers.mkString("Array(", ", ", ")")}")
+    }
+
+    // Compare modifier locations (ignoring byte offsets)
+    first._modifiers.zip(second._modifiers).foreach { case (m1, m2) =>
+      if (!locationsMatch(m1.location, m2.location)) {
+        throw new Exception(
+          s"Different modifier location for '${m1.text}': ${m1.location} != ${m2.location}"
+        )
+      }
     }
 
     if (first.id != second.id) {
@@ -149,9 +182,27 @@ object Compare {
           .mkString("Array(", ", ", ")")} != ${second.annotations.mkString("Array(", ", ", ")")}")
     }
 
+    // Compare annotation locations (ignoring byte offsets)
+    first.annotations.zip(second.annotations).foreach { case (a1, a2) =>
+      if (!locationsMatch(a1.location, a2.location)) {
+        throw new Exception(
+          s"Different annotation location for '${a1.name}': ${a1.location} != ${a2.location}"
+        )
+      }
+    }
+
     if (!(first.modifiers sameElements second.modifiers)) {
       throw new Exception(s"Different modifiers ${first.modifiers
           .mkString("Array(", ", ", ")")} != ${second.modifiers.mkString("Array(", ", ", ")")}")
+    }
+
+    // Compare modifier locations (ignoring byte offsets)
+    first.modifiers.zip(second.modifiers).foreach { case (m1, m2) =>
+      if (!locationsMatch(m1.location, m2.location)) {
+        throw new Exception(
+          s"Different modifier location for '${m1.text}': ${m1.location} != ${m2.location}"
+        )
+      }
     }
 
     if (first.id != second.id) {
@@ -179,9 +230,27 @@ object Compare {
           .mkString("Array(", ", ", ")")} != ${second.annotations.mkString("Array(", ", ", ")")}")
     }
 
+    // Compare annotation locations (ignoring byte offsets)
+    first.annotations.zip(second.annotations).foreach { case (a1, a2) =>
+      if (!locationsMatch(a1.location, a2.location)) {
+        throw new Exception(
+          s"Different annotation location for '${a1.name}': ${a1.location} != ${a2.location}"
+        )
+      }
+    }
+
     if (!(first.modifiers sameElements second.modifiers)) {
       throw new Exception(s"Different modifiers ${first.modifiers
           .mkString("Array(", ", ", ")")} != ${second.modifiers.mkString("Array(", ", ", ")")}")
+    }
+
+    // Compare modifier locations (ignoring byte offsets)
+    first.modifiers.zip(second.modifiers).foreach { case (m1, m2) =>
+      if (!locationsMatch(m1.location, m2.location)) {
+        throw new Exception(
+          s"Different modifier location for '${m1.text}': ${m1.location} != ${m2.location}"
+        )
+      }
     }
 
     if (first.id != second.id) {

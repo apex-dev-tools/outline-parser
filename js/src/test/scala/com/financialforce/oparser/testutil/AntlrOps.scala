@@ -30,13 +30,20 @@ object AntlrOps {
 
   implicit class ContextOps[X <: ParserRuleContext](context: X) {
     def location: Location = {
+      // ANTLR uses [start, end) convention with exclusive end positions
+      // We don't calculate byte offsets here as that would be too expensive
+      // The comparison code will ignore byte offsets for ANTLR-generated locations
+
+      // Handle UndefOr[Token] in ScalaJS - context.stop might be undefined
+      val stopToken = context.stop.toOption.getOrElse(context.start)
+
       Location(
         context.start.line,
         context.start.charPositionInLine,
-        context.start.startIndex,
-        context.stop.line,
-        context.stop.charPositionInLine + context.stop.text.length,
-        context.stop.stopIndex
+        0,  // byte offset not calculated
+        stopToken.line,
+        stopToken.charPositionInLine + stopToken.text.length,
+        0   // byte offset not calculated
       )
     }
   }
