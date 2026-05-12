@@ -153,6 +153,92 @@ class SmokeTest extends AnyFunSpec {
     assert(method.modifiers sameElements Array(Modifier("public")))
   }
 
+  it("parses multi-line string literals") {
+    val content =
+      """public class Dummy {
+        |  public void func() {
+        |    String a = '''
+        |{
+        |  "name": "John"
+        |}''';
+        |  }
+        |}
+        |""".stripMargin
+    val td = parse(content)
+
+    assert(td.methods.length == 1)
+    td.methods.head.bodyLocation.foreach(bl =>
+      assert(
+        extractLocation(content, bl) ==
+          """public void func() {
+            |    String a = '''
+            |{
+            |  "name": "John"
+            |}''';
+            |  }
+            |""".stripMargin
+      )
+    )
+  }
+
+  it("parses multi-line string literals with odd single quotes in the body") {
+    val content =
+      """public class Dummy {
+        |  public void func() {
+        |    String a = '''
+        |can't
+        |''';
+        |  }
+        |}
+        |""".stripMargin
+    val td = parse(content)
+
+    assert(td.methods.length == 1)
+  }
+
+  it("parses multi-line string literals with doubled single quotes in the body") {
+    val content =
+      """public class Dummy {
+        |  public void func() {
+        |    String a = '''
+        |''two''
+        |''';
+        |  }
+        |}
+        |""".stripMargin
+    val td = parse(content)
+
+    assert(td.methods.length == 1)
+  }
+
+  it("parses multi-line string literals with unbalanced braces in the body") {
+    val content =
+      """public class Dummy {
+        |  public void func() {
+        |    String a = '''
+        |{
+        |''';
+        |  }
+        |}
+        |""".stripMargin
+    val td = parse(content)
+
+    assert(td.methods.length == 1)
+  }
+
+  it("falls back to legacy string literal parsing for malformed multi-line string literals") {
+    val content =
+      """public class Dummy {
+        |  public void func() {
+        |    String a = '''abc''';
+        |  }
+        |}
+        |""".stripMargin
+    val td = parse(content)
+
+    assert(td.methods.length == 1)
+  }
+
   it("errors on constructor without body terminated with semi-colon") {
     val content =
       """public class Dummy {

@@ -514,6 +514,10 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     charOffset + 1 < length && contents(charOffset + 1) == peek
   }
 
+  private def peekMatch(offset: Int, peek: Char): Boolean = {
+    charOffset + offset < length && contents(charOffset + offset) == peek
+  }
+
   private val byteBuffer = new mutable.StringBuilder(4)
   private def consumeCharacter(capture: Boolean = true): Unit = {
 
@@ -647,20 +651,20 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     }
   }
 
-  private def consumeNewline(): Boolean = {
+  private def consumeNewline(capture: Boolean = false): Boolean = {
     if (currentChar == Tokens.CarriageReturn && peekMatch(Tokens.Newline)) {
-      consumeCharacter(false)
-      consumeCharacter(false)
+      consumeCharacter(capture)
+      consumeCharacter(capture)
       line += 1
       lineOffset = 0
       true
     } else if (currentChar == Tokens.Newline) {
-      consumeCharacter(false)
+      consumeCharacter(capture)
       line += 1
       lineOffset = 0
       true
     } else {
-      consumeCharacter(false)
+      consumeCharacter(capture)
       false
     }
   }
@@ -709,6 +713,12 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
 
   private def consumeStringLiteral(capture: Boolean = false): Unit = {
     buffer.clear()
+
+    if (isAtMultilineStringLiteral) {
+      consumeMultilineStringLiteral(capture)
+      return
+    }
+
     consumeCharacter(capture)
 
     var continue = true
@@ -726,6 +736,48 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           }
         case _ =>
           consumeCharacter(capture);
+      }
+
+      if (continue) {
+        if (atEnd()) {
+          throw new Exception("End of file")
+        } else if (currentOffset == charOffset)
+          throw new Exception("No Progress")
+      }
+    }
+  }
+
+  private def isAtMultilineStringLiteral: Boolean = {
+    peekMatch(1, Tokens.SingleQuote) &&
+    peekMatch(2, Tokens.SingleQuote) &&
+    (peekMatch(3, Tokens.Newline) || peekMatch(3, Tokens.CarriageReturn))
+  }
+
+  private def consumeMultilineStringLiteral(capture: Boolean): Unit = {
+    consumeCharacter(capture)
+    consumeCharacter(capture)
+    consumeCharacter(capture)
+
+    var continue = true
+    while (continue) {
+      val currentOffset = charOffset
+
+      currentChar match {
+        case Tokens.SingleQuote
+            if peekMatch(1, Tokens.SingleQuote) && peekMatch(2, Tokens.SingleQuote) =>
+          consumeCharacter(capture)
+          consumeCharacter(capture)
+          consumeCharacter(capture)
+          continue = false
+        case Tokens.BackSlash =>
+          consumeCharacter(capture)
+          if (currentChar == Tokens.SingleQuote || currentChar == Tokens.BackSlash) {
+            consumeCharacter(capture)
+          }
+        case Tokens.Newline | Tokens.CarriageReturn =>
+          consumeNewline(capture)
+        case _ =>
+          consumeCharacter(capture)
       }
 
       if (continue) {
