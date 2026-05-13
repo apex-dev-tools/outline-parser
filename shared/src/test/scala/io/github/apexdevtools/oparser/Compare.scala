@@ -17,7 +17,7 @@ object Compare {
         l1.endLine == l2.endLine &&
         l1.endLineOffset == l2.endLineOffset
       case (None, None) => true
-      case _ => false
+      case _            => false
     }
   }
 

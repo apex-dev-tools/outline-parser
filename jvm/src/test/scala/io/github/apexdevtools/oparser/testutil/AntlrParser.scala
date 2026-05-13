@@ -3,17 +3,17 @@
  */
 package io.github.apexdevtools.oparser.testutil
 
+import io.github.apexdevtools.apexparser.{ApexErrorListener, ApexParser, ApexParserFactory}
 import io.github.apexdevtools.oparser._
 import io.github.apexdevtools.oparser.testutil.AntlrOps._
 import io.github.apexdevtools.types.base._
 import io.github.apexdevtools.types.{ITypeDeclaration, base}
-import com.nawforce.runtime.parsers.{CodeParser, SourceData}
-import com.nawforce.runtime.platform.Path
-import io.github.apexdevtools.apexparser.ApexParser
-import io.github.apexdevtools.apexparser.ApexParser.ModifierContext
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import org.antlr.v4.runtime.tree.TerminalNode
 
 import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 object AntlrParser {
 
@@ -25,17 +25,22 @@ object AntlrParser {
   )
 
   def parse(path: String, contents: Array[Byte]): Option[ITypeDeclaration] = {
+    val stream        = CharStreams.fromString(new String(contents, "UTF-8"))
+    val errorListener = new CollectingErrorListener
+    val lexer         = ApexParserFactory.createLexer(stream)
+    lexer.addErrorListener(errorListener)
+    val parser = ApexParserFactory.createParser(new CommonTokenStream(lexer))
+    parser.addErrorListener(errorListener)
 
-    // We re-use apex-ls CodeParser for JS/JVM portability
-    // Pass bytes directly to SourceData to ensure byte offsets match the original file
-    val codeParser  = CodeParser(Path(path), SourceData(contents))
-    val issuesAndCU = codeParser.parseClass()
-    issuesAndCU.issues.headOption.map(issue => throw new Exception(issue.asString))
+    val cu = parser.compilationUnit()
+    errorListener.firstError.foreach(msg => throw new Exception(msg))
 
-    val td = issuesAndCU.value.typeDeclaration()
-    val cd = CodeParser.toScala(td.classDeclaration())
-    val id = CodeParser.toScala(td.interfaceDeclaration())
-    val ed = CodeParser.toScala(td.enumDeclaration())
+    val td = cu.typeDeclaration()
+    if (td == null) return None
+
+    val cd = Option(td.classDeclaration())
+    val id = Option(td.interfaceDeclaration())
+    val ed = Option(td.enumDeclaration())
     if (cd.nonEmpty) {
       val ctd                      = new TestClassTypeDeclaration(path, enclosing = null)
       val (annotations, modifiers) = splitAnnotationsAndModifiers(td.modifier())
@@ -65,11 +70,11 @@ object AntlrParser {
   }
 
   def toId(ctx: ApexParser.IdContext): LocatableIdToken = {
-    LocatableIdToken(CodeParser.getText(ctx), ctx.location)
+    LocatableIdToken(ctx.getText, ctx.location)
   }
 
   def toModifier(ctx: ApexParser.ModifierContext): Modifier = {
-    val modifier = CodeParser.getText(ctx)
+    val modifier = ctx.getText
     val len      = modifier.length
     // Add a space back in, it may not have been a single space but very likely it was
     if (len >= 7 && modifier.toLowerCase.endsWith("sharing")) {
@@ -82,21 +87,16 @@ object AntlrParser {
   }
 
   def antlrAnnotation(ctx: ApexParser.AnnotationContext): Annotation = {
-    val qName = QualifiedName(
-      CodeParser.toScala(ctx.qualifiedName().id()).map(id => toId(id)).toArray
-    )
-    val args = CodeParser
-      .toScala(ctx.elementValue())
-      .map(CodeParser.getText)
-      .orElse(CodeParser.toScala(ctx.elementValuePairs()).map(CodeParser.getText))
-      .orElse(if (CodeParser.getText(ctx).endsWith("()")) Some("") else None)
+    val qName = QualifiedName(ctx.qualifiedName().id().asScala.map(id => toId(id)).toArray)
+    val args = Option(ctx.elementValue())
+      .map(_.getText)
+      .orElse(Option(ctx.elementValuePairs()).map(_.getText))
+      .orElse(if (ctx.getText.endsWith("()")) Some("") else None)
     Annotation(qName.toString, args, Some(ctx.location))
   }
 
   def antlrTypeList(ctx: ApexParser.TypeListContext): ArraySeq[TypeRef] = {
-    CodeParser
-      .toScala(ctx.typeRef())
-      .map(tr => antlrTypeRef(tr))
+    ArraySeq.from(ctx.typeRef().asScala.map(tr => antlrTypeRef(tr)))
   }
 
   def antlrTypeArguments(ctx: ApexParser.TypeArgumentsContext): ArraySeq[TypeRef] = {
@@ -105,22 +105,18 @@ object AntlrParser {
 
   def antlrTypeName(ctx: ApexParser.TypeNameContext): TypeNameSegment = {
     val typeArguments =
-      CodeParser
-        .toScala(ctx.typeArguments())
+      Option(ctx.typeArguments())
         .map(ta => antlrTypeArguments(ta))
         .getOrElse(TypeRef.emptyArraySeq)
-    CodeParser
-      .toScala(ctx.LIST())
+    Option(ctx.LIST(): TerminalNode)
       .map(l => new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments))
       .getOrElse(
-        CodeParser
-          .toScala(ctx.SET())
+        Option(ctx.SET(): TerminalNode)
           .map(l =>
             new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments)
           )
           .getOrElse(
-            CodeParser
-              .toScala(ctx.MAP())
+            Option(ctx.MAP(): TerminalNode)
               .map(l =>
                 new TypeNameSegment(LocatableIdToken(l.toString, Location.default), typeArguments)
               )
@@ -131,15 +127,16 @@ object AntlrParser {
 
   def antlrTypeRef(ctx: ApexParser.TypeRefContext): UnresolvedTypeRef = {
     val segments = new mutable.ArrayBuffer[TypeNameSegment]()
-    CodeParser
-      .toScala(ctx.typeName())
+    ctx
+      .typeName()
+      .asScala
       .foreach(tn => {
         segments.append(antlrTypeName(tn))
       })
 
     base.UnresolvedTypeRef(
       segments.toArray,
-      CodeParser.getText(ctx.arraySubscripts()).count(_ == ']')
+      Option(ctx.arraySubscripts()).map(_.getText).getOrElse("").count(_ == ']')
     )
   }
 
@@ -149,21 +146,19 @@ object AntlrParser {
   ): Unit = {
     ctd.setId(toId(ctx.id()))
 
-    CodeParser.toScala(ctx.typeRef()).foreach(tr => ctd.setExtends(antlrTypeRef(tr)))
-    CodeParser.toScala(ctx.typeList()).foreach(tl => ctd.setImplements(antlrTypeList(tl)))
+    Option(ctx.typeRef()).foreach(tr => ctd.setExtends(antlrTypeRef(tr)))
+    Option(ctx.typeList()).foreach(tl => ctd.setImplements(antlrTypeList(tl)))
 
-    CodeParser.toScala(ctx.classBody().classBodyDeclaration()).foreach { c =>
+    ctx.classBody().classBodyDeclaration().asScala.foreach { c =>
       {
-        CodeParser
-          .toScala(c.memberDeclaration())
+        Option(c.memberDeclaration())
           .foreach(d => {
             val md                       = new MemberDeclaration
             val (annotations, modifiers) = splitAnnotationsAndModifiers(c.modifier())
             md.setAnnotations(annotations)
             md.setModifiers(modifiers)
 
-            CodeParser
-              .toScala(d.classDeclaration())
+            Option(d.classDeclaration())
               .foreach(icd => {
                 val innerClassDeclaration = new TestClassTypeDeclaration(ctd.path, ctd)
                 innerClassDeclaration.setAnnotations(md.annotations)
@@ -172,8 +167,7 @@ object AntlrParser {
                 antlrClassTypeDeclaration(innerClassDeclaration, icd)
               })
 
-            CodeParser
-              .toScala(d.interfaceDeclaration())
+            Option(d.interfaceDeclaration())
               .foreach(iid => {
                 val innerInterfaceDeclaration = new TestInterfaceTypeDeclaration(ctd.path, ctd)
                 innerInterfaceDeclaration.setAnnotations(md.annotations)
@@ -182,8 +176,7 @@ object AntlrParser {
                 antlrInterfaceTypeDeclaration(innerInterfaceDeclaration, iid)
               })
 
-            CodeParser
-              .toScala(d.enumDeclaration())
+            Option(d.enumDeclaration())
               .foreach(ied => {
                 val innerEnumDeclaration = new TestEnumTypeDeclaration(ctd.path, ctd)
                 innerEnumDeclaration.setAnnotations(md.annotations)
@@ -192,21 +185,16 @@ object AntlrParser {
                 antlrEnumTypeDeclaration(innerEnumDeclaration, ied)
               })
 
-            CodeParser
-              .toScala(d.constructorDeclaration())
+            Option(d.constructorDeclaration())
               .foreach(antlrConstructorDeclaration(ctd, md, _))
-            CodeParser
-              .toScala(d.methodDeclaration())
+            Option(d.methodDeclaration())
               .foreach(antlrMethodDeclaration(ctd, md, _))
-            CodeParser
-              .toScala(d.propertyDeclaration())
+            Option(d.propertyDeclaration())
               .foreach(antlrPropertyDeclaration(ctd, md, _))
-            CodeParser
-              .toScala(d.fieldDeclaration())
+            Option(d.fieldDeclaration())
               .foreach(antlrFieldDeclaration(ctd, md, _))
           })
-        CodeParser
-          .toScala(c.block())
+        Option(c.block())
           .foreach(_ => {
             ctd.appendInitializer(Initializer(Option(c.STATIC()).isDefined))
           })
@@ -220,14 +208,12 @@ object AntlrParser {
   ): Unit = {
     itd.setId(toId(ctx.id()))
 
-    CodeParser.toScala(ctx.typeList()).foreach(tl => itd.setImplements(antlrTypeList(tl)))
+    Option(ctx.typeList()).foreach(tl => itd.setImplements(antlrTypeList(tl)))
 
-    CodeParser
-      .toScala(
-        ctx
-          .interfaceBody()
-          .interfaceMethodDeclaration()
-      )
+    ctx
+      .interfaceBody()
+      .interfaceMethodDeclaration()
+      .asScala
       .foreach(mctx => {
         val md                       = new MemberDeclaration
         val (annotations, modifiers) = splitAnnotationsAndModifiers(mctx.modifier())
@@ -243,13 +229,9 @@ object AntlrParser {
   ): Unit = {
     etd.setId(toId(ctx.id()))
 
-    CodeParser
-      .toScala(
-        ctx
-          .enumConstants()
-      )
-      .map(c => CodeParser.toScala(c.id()))
-      .getOrElse(ArraySeq())
+    Option(ctx.enumConstants())
+      .map(c => c.id().asScala.toSeq)
+      .getOrElse(Seq.empty)
       .foreach(ictx => {
         val id = toId(ictx)
         etd.appendField(FieldDeclaration(Array(), Array(Modifier("static")), etd, id))
@@ -262,21 +244,19 @@ object AntlrParser {
     ctx: ApexParser.ConstructorDeclarationContext
   ): Unit = {
 
-    val qName = QualifiedName(CodeParser.toScala(ctx.qualifiedName().id()).map(toId).toArray)
+    val qName =
+      QualifiedName(ctx.qualifiedName().id().asScala.map(toId).toArray)
     val formalParameterList =
-      CodeParser
-        .toScala(
-          ctx
-            .formalParameters()
-            .formalParameterList()
-        )
+      Option(
+        ctx
+          .formalParameters()
+          .formalParameterList()
+      )
         .map(fpl =>
           ArraySeq.unsafeWrapArray(
-            CodeParser
-              .toScala(
-                fpl
-                  .formalParameter()
-              )
+            fpl
+              .formalParameter()
+              .asScala
               .map(antlrFormalParameter)
               .toArray
           )
@@ -298,22 +278,19 @@ object AntlrParser {
     val id = toId(ctx.id())
 
     val formalParameterList =
-      CodeParser
-        .toScala(ctx.formalParameters().formalParameterList())
+      Option(ctx.formalParameters().formalParameterList())
         .map(fpl =>
           ArraySeq.unsafeWrapArray(
-            CodeParser
-              .toScala(
-                fpl
-                  .formalParameter()
-              )
+            fpl
+              .formalParameter()
+              .asScala
               .map(antlrFormalParameter)
               .toArray
           )
         )
         .getOrElse(FormalParameter.emptyArraySeq)
 
-    CodeParser.toScala(ctx.typeRef()) match {
+    Option(ctx.typeRef()) match {
       case Some(tr) => md.add(antlrTypeRef(tr))
       case None     => md.typeRef = voidTypeRef
     }
@@ -333,22 +310,19 @@ object AntlrParser {
     val id = toId(ctx.id())
 
     val formalParameterList =
-      CodeParser
-        .toScala(ctx.formalParameters().formalParameterList())
+      Option(ctx.formalParameters().formalParameterList())
         .map(fpl =>
           ArraySeq.unsafeWrapArray(
-            CodeParser
-              .toScala(
-                fpl
-                  .formalParameter()
-              )
+            fpl
+              .formalParameter()
+              .asScala
               .map(antlrFormalParameter)
               .toArray
           )
         )
         .getOrElse(FormalParameter.emptyArraySeq)
 
-    CodeParser.toScala(ctx.typeRef()) match {
+    Option(ctx.typeRef()) match {
       case Some(tr) => md.add(antlrTypeRef(tr))
       case None     => md.typeRef = voidTypeRef
     }
@@ -384,8 +358,10 @@ object AntlrParser {
   ): Unit = {
     md.add(antlrTypeRef(ctx.typeRef()))
 
-    CodeParser
-      .toScala(ctx.variableDeclarators().variableDeclarator())
+    ctx
+      .variableDeclarators()
+      .variableDeclarator()
+      .asScala
       .foreach(v => {
         val id = toId(v.id())
         val field =
@@ -395,18 +371,26 @@ object AntlrParser {
   }
 
   private def splitAnnotationsAndModifiers(
-    context: AntlrCollection[ApexParser.ModifierContext]
+    context: java.util.List[ApexParser.ModifierContext]
   ): (Array[Annotation], Array[Modifier]) = {
-    val ctxArray: ArraySeq[ModifierContext] = CodeParser.toScala(context)
+    val ctxArray = context.asScala
     (
       ctxArray
-        .flatMap(m => CodeParser.toScala(m.annotation()))
+        .flatMap(m => Option(m.annotation()))
         .map(m => antlrAnnotation(m))
         .toArray,
       ctxArray
-        .filter(m => CodeParser.toScala(m.annotation()).isEmpty)
+        .filter(m => Option(m.annotation()).isEmpty)
         .map(toModifier)
         .toArray
     )
+  }
+
+  private class CollectingErrorListener extends ApexErrorListener {
+    private val errors = mutable.ArrayBuffer.empty[String]
+    override def apexSyntaxError(line: Int, column: Int, msg: String): Unit = {
+      errors += s"line $line:$column $msg"
+    }
+    def firstError: Option[String] = errors.headOption
   }
 }

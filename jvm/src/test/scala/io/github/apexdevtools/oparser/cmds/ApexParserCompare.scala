@@ -5,14 +5,12 @@ package io.github.apexdevtools.oparser.cmds
 
 import io.github.apexdevtools.oparser._
 import io.github.apexdevtools.oparser.testutil.{AntlrParser, ClassScanner}
-import com.nawforce.pkgforce.path.PathLike
-import com.nawforce.runtime.platform.Path
 
+import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.atomic.AtomicLong
 import scala.collection.parallel.CollectionConverters.ImmutableIterableIsParallelizable
 
 // Command for comparing outputs with apex-parser on one or many files
-// NOTE: This needs to live in 'test' due to apex-ls dependency
 object ApexParserCompare {
   def main(args: Array[String]): Unit = {
     System.exit(ApexParserCompare.run(args))
@@ -46,7 +44,7 @@ object ApexParserCompare {
   }
 
   private def parseSeq(display: Boolean, test: Boolean, onlyANTLR: Boolean, inPath: String): Int = {
-    val absolutePath = Path(inPath)
+    val absolutePath = Paths.get(inPath).toAbsolutePath
     println("SEQUENTIAL " + absolutePath.toString)
 
     val start        = System.currentTimeMillis()
@@ -71,11 +69,11 @@ object ApexParserCompare {
   }
 
   private def parsePar(display: Boolean, test: Boolean, onlyANTLR: Boolean, inPath: String): Int = {
-    val absolutePath = Path(inPath)
+    val absolutePath = Paths.get(inPath).toAbsolutePath
     println("PARALLEL " + absolutePath.toString)
 
     val start        = System.currentTimeMillis()
-    val files        = ClassScanner.scan(absolutePath)
+    val files        = ClassScanner.scan(absolutePath).toVector
     val timeForFiles = System.currentTimeMillis() - start
 
     val all    = files.par.map(p => parseFileWithStatus(display, test, onlyANTLR, p))
@@ -127,7 +125,7 @@ object ApexParserCompare {
     display: Boolean,
     test: Boolean,
     onlyANTLR: Boolean,
-    file: PathLike
+    file: Path
   ): Int = {
     try {
       parseFile(display, test, onlyANTLR, file)
@@ -140,14 +138,9 @@ object ApexParserCompare {
     }
   }
 
-  private def parseFile(
-    display: Boolean,
-    test: Boolean,
-    onlyANTLR: Boolean,
-    file: PathLike
-  ): Unit = {
+  private def parseFile(display: Boolean, test: Boolean, onlyANTLR: Boolean, file: Path): Unit = {
     var start         = System.currentTimeMillis()
-    val contentsBytes = file.readBytes().getOrElse(Array())
+    val contentsBytes = Files.readAllBytes(file)
     addReadFileTime(System.currentTimeMillis() - start)
     start = System.currentTimeMillis()
     val contentsString: String = new String(contentsBytes, "utf8")

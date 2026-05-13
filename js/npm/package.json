@@ -1,9 +1,9 @@
 {
   "name": "@apexdevtools/outline-parser",
   "devDependencies": {
-    "@apexdevtools/apex-parser": "^4.3.1"
+    "@apexdevtools/apex-parser": "^5.0.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": "^20.19.0 || ^22.13.0 || >=24"
   }
 }

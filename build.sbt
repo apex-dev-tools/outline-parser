@@ -43,13 +43,16 @@ lazy val parser = crossProject(JSPlatform, JVMPlatform)
     name := "outline-parser",
     scalacOptions += "-deprecation",
     libraryDependencies ++= Seq(
-      "org.scalatest"            %%% "scalatest"  % "3.2.9" % Test,
-      "io.github.apex-dev-tools" %%% "apex-ls"    % "6.0.2" % Test
+      "org.scalatest" %%% "scalatest" % "3.2.9" % Test
     )
   )
   .jvmSettings(
     build       := buildJVM.value,
     Test / fork := true,
+    libraryDependencies ++= Seq(
+      "io.github.apex-dev-tools" % "apex-parser"                % "5.0.0" % Test,
+      "org.scala-lang.modules"  %% "scala-parallel-collections" % "1.0.4" % Test
+    ),
     packageOptions += Package.ManifestAttributes(
       "Class-Path" -> (Compile / dependencyClasspath).value.files.map(_.getName.trim).mkString(" "),
       "Implementation-Build" -> java.time.Instant.now().toEpochMilli.toString
