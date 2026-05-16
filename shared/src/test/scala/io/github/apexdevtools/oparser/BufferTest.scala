@@ -38,7 +38,13 @@ class BufferTest extends AnyFunSpec {
       buffer.append(byteOffset = 0, charOffset = 0, line = 0, lineOffset = 0, charByteLength = 1)
       buffer.append(byteOffset = 1, charOffset = 1, line = 0, lineOffset = 1, charByteLength = 1)
       buffer.append(byteOffset = 2, charOffset = 2, line = 0, lineOffset = 2, charByteLength = 1)
-      buffer.append(byteOffset = 3, charOffset = 3, line = 0, lineOffset = 3, charByteLength = 2) // é is 2 bytes
+      buffer.append(
+        byteOffset = 3,
+        charOffset = 3,
+        line = 0,
+        lineOffset = 3,
+        charByteLength = 2
+      ) // é is 2 bytes
 
       val (captured, location) = buffer.captured()
 
@@ -68,8 +74,21 @@ class BufferTest extends AnyFunSpec {
 
       // A=1 byte, 🤦=4 bytes (spans 2 char positions), B=1 byte
       buffer.append(byteOffset = 0, charOffset = 0, line = 0, lineOffset = 0, charByteLength = 1)
-      buffer.append(byteOffset = 1, charOffset = 1, line = 0, lineOffset = 1, charByteLength = 4, charCount = 2) // emoji
-      buffer.append(byteOffset = 5, charOffset = 3, line = 0, lineOffset = 2, charByteLength = 1) // B at char position 3
+      buffer.append(
+        byteOffset = 1,
+        charOffset = 1,
+        line = 0,
+        lineOffset = 1,
+        charByteLength = 4,
+        charCount = 2
+      ) // emoji
+      buffer.append(
+        byteOffset = 5,
+        charOffset = 3,
+        line = 0,
+        lineOffset = 2,
+        charByteLength = 1
+      ) // B at char position 3
 
       val (captured, location) = buffer.captured()
 
@@ -83,10 +102,29 @@ class BufferTest extends AnyFunSpec {
       val buffer  = new Buffer(content)
 
       // In Java Strings (UTF-16), emoji is 2 chars: high surrogate (index 2) + low surrogate (index 3)
-      buffer.append(byteOffset = 0, charOffset = 0, line = 0, lineOffset = 0, charByteLength = 1) // 'H'
-      buffer.append(byteOffset = 1, charOffset = 1, line = 0, lineOffset = 1, charByteLength = 1) // 'i'
+      buffer.append(
+        byteOffset = 0,
+        charOffset = 0,
+        line = 0,
+        lineOffset = 0,
+        charByteLength = 1
+      ) // 'H'
+      buffer.append(
+        byteOffset = 1,
+        charOffset = 1,
+        line = 0,
+        lineOffset = 1,
+        charByteLength = 1
+      ) // 'i'
       // Emoji: starts at charOffset 2, spans 2 char positions (surrogate pair), 4 bytes in UTF-8
-      buffer.append(byteOffset = 2, charOffset = 2, line = 0, lineOffset = 2, charByteLength = 4, charCount = 2)
+      buffer.append(
+        byteOffset = 2,
+        charOffset = 2,
+        line = 0,
+        lineOffset = 2,
+        charByteLength = 4,
+        charCount = 2
+      )
 
       val (captured, location) = buffer.captured()
 
@@ -119,10 +157,10 @@ class BufferTest extends AnyFunSpec {
     it("should verify byte offsets match actual UTF-8 encoding") {
       // This test verifies our byte offset calculation matches actual UTF-8 encoding
       val testCases = Seq(
-        ("A", 1),       // ASCII
-        ("é", 2),       // 2-byte UTF-8
-        ("中", 3),       // 3-byte UTF-8
-        ("🤦", 4)        // 4-byte UTF-8 (surrogate pair)
+        ("A", 1), // ASCII
+        ("é", 2), // 2-byte UTF-8
+        ("中", 3), // 3-byte UTF-8
+        ("🤦", 4) // 4-byte UTF-8 (surrogate pair)
       )
 
       testCases.foreach { case (char, expectedBytes) =>
