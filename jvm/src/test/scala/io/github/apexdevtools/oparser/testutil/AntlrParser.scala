@@ -8,7 +8,7 @@ import io.github.apexdevtools.oparser._
 import io.github.apexdevtools.oparser.testutil.AntlrOps._
 import io.github.apexdevtools.types.base._
 import io.github.apexdevtools.types.{ITypeDeclaration, base}
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.tree.TerminalNode
 
 import scala.collection.immutable.ArraySeq
@@ -27,12 +27,9 @@ object AntlrParser {
   def parse(path: String, contents: Array[Byte]): Option[ITypeDeclaration] = {
     val stream        = CharStreams.fromString(new String(contents, "UTF-8"))
     val errorListener = new CollectingErrorListener
-    val lexer         = ApexParserFactory.createLexer(stream)
-    lexer.addErrorListener(errorListener)
-    val parser = ApexParserFactory.createParser(new CommonTokenStream(lexer))
-    parser.addErrorListener(errorListener)
+    val parserPair    = ApexParserFactory.createLexerAndParser(stream, errorListener)
 
-    val cu = parser.compilationUnit()
+    val cu = parserPair.getParser.compilationUnit()
     errorListener.firstError.foreach(msg => throw new Exception(msg))
 
     val td = cu.typeDeclaration()
