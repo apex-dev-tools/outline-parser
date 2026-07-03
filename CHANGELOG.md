@@ -1,6 +1,6 @@
 # outline-parser - Changelog
 
-## 2.0.0-beta.1
+## 2.0.0 - 2026-07-03
 
 ### General
 
@@ -27,13 +27,13 @@
 
 ### Build & dependencies
 
-- Removed the `apex-ls` test dependency. The JVM comparison test suite now uses `apex-parser 5.1.0-beta.1` directly via `ApexParserFactory`, eliminating the outline-parser ↔ apex-ls cycle. JS-side sample comparison is dropped; the JS test suite is reduced to `SmokeTest`.
+- Removed the `apex-ls` test dependency. The JVM comparison test suite now uses `apex-parser 5.1.0` directly via `ApexParserFactory`, eliminating the outline-parser ↔ apex-ls cycle. JS-side sample comparison is dropped; the JS test suite is reduced to `SmokeTest`.
 - Upgraded Scala.js to `1.18.2`.
 - Updated sbt and plugin dependencies to latest stable versions.
 
 ### JS / NPM
 
-- Bumped dev dep `@apexdevtools/apex-parser` to `^5.1.0-beta.1` (was `^4.3.1`).
+- Bumped dev dep `@apexdevtools/apex-parser` to `^5.1.0` (was `^4.3.1`).
 - Raised minimum Node version to `^20.19.0 || ^22.13.0 || >=24` (was `>=14.0.0`), matching the requirements of `apex-parser 5.x`.
 - Moved `@apexdevtools/apex-parser` to `devDependencies`.
 
