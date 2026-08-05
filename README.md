@@ -48,6 +48,15 @@ Maven:
 
 The library does not currently provide a documented API. To understand how to use it we recommend looking at the test class `ApexParserCompare.scala` which is used to compare the output with our [full parser](https://github.com/apex-dev-tools/apex-parser) for Apex.
 
+### Issue API
+
+The cross-platform `io.github.apexdevtools.api.Rule` API exposes two descriptions of a rule:
+
+* `id()` is the stable machine-readable key. New rules should override it with a lowercase kebab-case value and must keep that value stable once published, because consumers may store it in configuration.
+* `name()` is the human-readable label and does not need to be unique or stable.
+
+For compatibility, rules implemented before `id()` was added inherit an implementation that returns `name()`. `Issue.asString()` and `Issue.toString()` continue to use `name()`, so adding a distinct ID does not change existing text output.
+
 ## Development
 
 ### Building

@@ -16,7 +16,14 @@ package io.github.apexdevtools.api
 
 /* WARNING: This must be identical to Java class of same name */
 trait Rule {
-  /* The nane of the rule */
+  /*
+   * Stable machine-readable identifier for the rule. New rules should override this with a
+   * lowercase kebab-case value that remains stable across releases. The default preserves
+   * compatibility with existing implementations by using their name as their identifier.
+   */
+  def id(): String = name()
+
+  /* Human-readable name of the rule. It does not need to be unique. */
   def name(): String
 
   /* Range 1-5, 1 being the highest */
