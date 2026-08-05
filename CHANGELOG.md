@@ -1,5 +1,11 @@
 # outline-parser - Changelog
 
+## Unreleased
+
+### API
+
+- Added `Rule.id()` as a stable machine-readable rule identifier on JVM and Scala.js. Existing implementations remain compatible and default to `name()`; new rules should override it with a stable lowercase kebab-case ID. Existing `Issue` string output remains unchanged.
+
 ## 2.0.0 - 2026-07-03
 
 ### General

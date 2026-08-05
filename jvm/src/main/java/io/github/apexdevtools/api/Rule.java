@@ -44,7 +44,18 @@ public interface Rule {
     Integer INFO_PRIORITY = 5;
 
     /**
-     * The nane of the rule, does need to be unique but recommended it is
+     * Stable machine-readable identifier for the rule.
+     *
+     * <p>New rules should override this method with a lowercase kebab-case value that remains
+     * stable across releases. The default preserves compatibility with existing implementations;
+     * their name is also used as their identifier.</p>
+     */
+    default String id() {
+        return name();
+    }
+
+    /**
+     * Human-readable name of the rule. It does not need to be unique.
      */
     String name();
 
