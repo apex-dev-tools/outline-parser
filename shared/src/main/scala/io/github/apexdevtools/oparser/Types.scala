@@ -6,6 +6,8 @@ package io.github.apexdevtools.oparser
 import io.github.apexdevtools.types.{base, _}
 import io.github.apexdevtools.types.base.{
   Annotation,
+  AnnotationParameter,
+  AnnotationParameterSeparator,
   IdLocationHolder,
   IdWithLocation,
   Location,
@@ -657,8 +659,12 @@ object Parse {
     }
     val qName = QualifiedName(names.toArray)
 
-    val parameters = if (tokens(index).exists(_.matches(Tokens.LParenStr))) {
-      val builder      = new mutable.StringBuilder()
+    // Collect the tokens between the annotation's parentheses, recording the nesting depth of
+    // each so that a nested list can be told apart from the parameter list itself.
+    val builder       = new mutable.StringBuilder()
+    val contained     = new ArrayBuffer[(Token, Int)]()
+    val hasParameters = tokens(index).exists(_.matches(Tokens.LParenStr))
+    if (hasParameters) {
       var nestingCount = 1
       index += 1
       while (nestingCount > 0 && index < tokens.length) {
@@ -667,19 +673,111 @@ object Parse {
         } else if (tokens.get(index).matches(Tokens.LParenStr)) {
           nestingCount += 1
         }
-        if (nestingCount > 0) builder.append(tokens.get(index).contents)
+        if (nestingCount > 0) {
+          builder.append(tokens.get(index).contents)
+          contained.append((tokens.get(index), nestingCount))
+        }
         index += 1
       }
-      Some(builder.toString())
-    } else None
+    }
+    val parameters    = if (hasParameters) Some(builder.toString()) else None
+    val parameterList = if (hasParameters) Some(splitAnnotationParameters(contained)) else None
 
     // Capture full annotation location from @ through parameters
     val endLocation  = if (index > 0) tokens.get(index - 1).location else startLocation
     val fullLocation = Location.span(startLocation, endLocation)
 
-    accum.append(Annotation(qName.toString, parameters, Some(fullLocation)))
+    accum.append(Annotation(qName.toString, parameters, Some(fullLocation), parameterList))
 
     index
+  }
+
+  /* Nesting depth of the annotation's own parameter list, anything deeper is a nested list. */
+  private val topLevelParameterDepth = 1
+
+  /** Split the tokens of an annotation's parameter list into located parameters.
+    *
+    * This does not validate, its job is to record what was written and where. Parameters are
+    * separated either by a comma, which Apex does not accept but which must still be representable,
+    * or by whitespace, recognised as a gap in the source before an identifier that is followed by
+    * '='. Anything that fits neither shape is left as a single parameter rather than being
+    * rejected.
+    */
+  private def splitAnnotationParameters(
+    contained: ArrayBuffer[(Token, Int)]
+  ): ArraySeq[AnnotationParameter] = {
+    if (contained.isEmpty) return AnnotationParameter.emptyArraySeq
+
+    val parameters = new ArrayBuffer[AnnotationParameter]()
+    val current    = new ArrayBuffer[Token]()
+    var separator  = Option.empty[AnnotationParameterSeparator]
+
+    def flush(): Unit = {
+      parameters.append(toAnnotationParameter(current, separator))
+      current.clear()
+    }
+
+    var index = 0
+    while (index < contained.length) {
+      val (token, depth) = contained(index)
+      if (depth == topLevelParameterDepth && token.contents == Tokens.CommaStr) {
+        flush()
+        separator = Some(AnnotationParameterSeparator.Comma)
+      } else if (
+        depth == topLevelParameterDepth && current.nonEmpty &&
+        startsAnnotationParameter(contained, index)
+      ) {
+        flush()
+        separator = Some(AnnotationParameterSeparator.Whitespace)
+        current.append(token)
+      } else {
+        current.append(token)
+      }
+      index += 1
+    }
+    flush()
+
+    ArraySeq.unsafeWrapArray(parameters.toArray)
+  }
+
+  /* A parameter starts here if the source has whitespace before an identifier that is being
+   * assigned to, which is the only way Apex separates one parameter from the next. */
+  private def startsAnnotationParameter(
+    contained: ArrayBuffer[(Token, Int)],
+    index: Int
+  ): Boolean = {
+    val token = contained(index)._1
+    token.isInstanceOf[LocatableIdToken] &&
+    index > 0 &&
+    contained(index - 1)._1.location.endByteOffset < token.location.startByteOffset &&
+    index + 1 < contained.length && {
+      val (next, depth) = contained(index + 1)
+      depth == topLevelParameterDepth && next.contents == Tokens.EqualsStr
+    }
+  }
+
+  private def toAnnotationParameter(
+    tokens: ArrayBuffer[Token],
+    separator: Option[AnnotationParameterSeparator]
+  ): AnnotationParameter = {
+    if (tokens.isEmpty) return AnnotationParameter(None, "", separator)
+
+    val isNamed = tokens.length > 1 &&
+      tokens.head.isInstanceOf[LocatableIdToken] &&
+      tokens(1).contents == Tokens.EqualsStr
+
+    val name         = if (isNamed) Some(tokens.head.contents) else None
+    val nameLocation = if (isNamed) Some(tokens.head.location) else None
+    val valueTokens  = if (isNamed) tokens.drop(2) else tokens
+
+    AnnotationParameter(
+      name,
+      valueTokens.map(_.contents).mkString,
+      separator,
+      nameLocation,
+      valueTokens.headOption.map(head => Location.span(head.location, valueTokens.last.location)),
+      Some(Location.span(tokens.head.location, tokens.last.location))
+    )
   }
 
   private val modifierTokenStrs = Set(
