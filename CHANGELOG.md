@@ -6,6 +6,12 @@
 
 - Added `Rule.id()` as a stable machine-readable rule identifier on JVM and Scala.js. Existing implementations remain compatible and default to `name()`; new rules should override it with a stable lowercase kebab-case ID. Existing `Issue` string output remains unchanged.
 
+- Added `Annotation.parameterList`, a located, structured view of an annotation's parameter list, alongside the existing unparsed `parameters` string.
+  - Each `AnnotationParameter` carries its name (where one was written), its value, the separator written before it, and locations for the name, the value and the parameter as a whole.
+  - The separator is recorded as `AnnotationParameterSeparator.Whitespace` or `AnnotationParameterSeparator.Comma`. Apex only accepts whitespace, but a comma is retained rather than rejected so that consumers can diagnose it.
+  - Nothing is validated here. Names and values are left uninterpreted and forms Apex does not accept still parse.
+  - `parameters` is unchanged, as are `Annotation` equality and hashing. Neither `location` nor `parameterList` takes part in them.
+
 ## 2.0.0 - 2026-07-03
 
 ### General
