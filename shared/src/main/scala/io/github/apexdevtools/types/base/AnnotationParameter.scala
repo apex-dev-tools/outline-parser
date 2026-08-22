@@ -30,9 +30,8 @@ object AnnotationParameterSeparator {
   * argument of `@SuppressWarnings('PMD')`. Values are left uninterpreted, quotes and all, no
   * attempt is made to establish whether the name or value is legal for the annotation.
   *
-  * As with the unparsed `Annotation.parameters` string, the text of a value is a concatenation of
-  * token contents so any whitespace inside it is not preserved. Use `valueLocation` against the
-  * source if the exact text matters.
+  * The text of a value is a concatenation of token contents, so any whitespace inside it is not
+  * preserved. Use `valueLocation` against the source if the exact text matters.
   *
   * `precedingSeparator` is the separator written between this parameter and the one before it, it
   * is empty for the first parameter of a list.
