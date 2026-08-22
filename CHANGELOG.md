@@ -6,11 +6,21 @@
 
 - Added `Rule.id()` as a stable machine-readable rule identifier on JVM and Scala.js. Existing implementations remain compatible and default to `name()`; new rules should override it with a stable lowercase kebab-case ID. Existing `Issue` string output remains unchanged.
 
-- Added `Annotation.parameterList`, a located, structured view of an annotation's parameter list, alongside the existing unparsed `parameters` string.
+- Added `Annotation.parameterList`, a located, structured view of an annotation's parameter list, replacing the unparsed `parameters` string as the way to read parameters.
   - Each `AnnotationParameter` carries its name (where one was written), its value, the separator written before it, and locations for the name, the value and the parameter as a whole.
   - The separator is recorded as `AnnotationParameterSeparator.Whitespace` or `AnnotationParameterSeparator.Comma`. Apex only accepts whitespace, but a comma is retained rather than rejected so that consumers can diagnose it.
   - Nothing is validated here. Names and values are left uninterpreted and forms Apex does not accept still parse.
-  - `parameters` is unchanged, as are `Annotation` equality and hashing. Neither `location` nor `parameterList` takes part in them.
+
+- **(BREAKING)** `Annotation.parameters` is deprecated, and `Annotation` equality and hashing now take `parameterList` into account.
+  - `parameters` remains populated and keeps its current content, but it is a concatenation of token contents and cannot represent the separator between two parameters. Read `parameterList` instead.
+  - Equality was previously over `name` and `parameters` alone. It is now also over `parameterList`, so two annotations whose lossy strings coincide but whose structure differs — `@Dummy(a=1 b=2)` and `@Dummy(a=1b=2)` both give `a=1b=2` — are no longer equal. `location` is still excluded, and `AnnotationParameter` excludes its own locations for the same reason.
+  - An `Annotation` built by hand with only `parameters` no longer equals a parsed one, since its `parameterList` is empty.
+  - Fixed `Annotation.hashCode` not lowering the parameters string. `equals` has always compared it case-insensitively, so annotations differing only in case were equal but hashed differently.
+  - `AnnotationParameter` compares names and values case-insensitively, matching how the platform treats them and how `parameters` was already compared.
+
+### Build & dependencies
+
+- Updated the `apex-parser` test dependency to 5.2.0, which tightens the annotation grammar. The ANTLR reference parser used by the sample comparison now builds a full `parameterList`, so the structured form is compared against a second parser across the sample corpus rather than only being produced.
 
 ## 2.0.0 - 2026-07-03
 

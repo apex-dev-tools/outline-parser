@@ -4,6 +4,7 @@
 package io.github.apexdevtools.types.base
 
 import scala.collection.immutable.ArraySeq
+import scala.util.hashing.MurmurHash3
 
 /** Separator written between two annotation parameters.
   *
@@ -44,6 +45,24 @@ final case class AnnotationParameter(
   valueLocation: Option[Location] = None,
   location: Option[Location] = None
 ) {
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case other: AnnotationParameter =>
+        name.isDefined == other.name.isDefined &&
+        name.getOrElse("").equalsIgnoreCase(other.name.getOrElse("")) &&
+        value.equalsIgnoreCase(other.value) &&
+        precedingSeparator == other.precedingSeparator
+      // Note: locations intentionally excluded from equality, as they are on Annotation and
+      // Modifier. Names and values are compared case-insensitively, as Apex treats them.
+      case _ => false
+    }
+  }
+
+  override def hashCode(): Int = {
+    MurmurHash3.orderedHash(Seq(name.map(_.toLowerCase), value.toLowerCase, precedingSeparator))
+    // Note: locations intentionally excluded from hash
+  }
+
   override def toString: String = name.map(n => s"$n=$value").getOrElse(value)
 }
 

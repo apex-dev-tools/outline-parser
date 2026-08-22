@@ -84,12 +84,72 @@ object AntlrParser {
   }
 
   def antlrAnnotation(ctx: ApexParser.AnnotationContext): Annotation = {
-    val qName = QualifiedName(ctx.qualifiedName().id().asScala.map(id => toId(id)).toArray)
-    val args = Option(ctx.elementValue())
-      .map(_.getText)
-      .orElse(Option(ctx.elementValuePairs()).map(_.getText))
-      .orElse(if (ctx.getText.endsWith("()")) Some("") else None)
-    Annotation(qName.toString, args, Some(ctx.location))
+    val hasParameters = ctx.LPAREN() != null
+    val parameters =
+      if (hasParameters)
+        Some(
+          Option(ctx.elementValue())
+            .map(_.getText)
+            .orElse(Option(ctx.elementValuePairs()).map(_.getText))
+            .getOrElse("")
+        )
+      else None
+    val parameterList = if (hasParameters) Some(antlrAnnotationParameters(ctx)) else None
+    Annotation(ctx.id().getText, parameters, Some(ctx.location), parameterList)
+  }
+
+  /* Build the same parameter model the outline parser produces, so the two can be compared. A
+   * comma is a token in the tree, its absence between two pairs means they were separated by
+   * whitespace. */
+  private def antlrAnnotationParameters(
+    ctx: ApexParser.AnnotationContext
+  ): ArraySeq[AnnotationParameter] = {
+    Option(ctx.elementValue())
+      .map(value =>
+        ArraySeq(
+          AnnotationParameter(
+            None,
+            value.getText,
+            None,
+            None,
+            Some(value.location),
+            Some(value.location)
+          )
+        )
+      )
+      .orElse(Option(ctx.elementValuePairs()).map(antlrElementValuePairs))
+      .getOrElse(AnnotationParameter.emptyArraySeq)
+  }
+
+  private def antlrElementValuePairs(
+    ctx: ApexParser.ElementValuePairsContext
+  ): ArraySeq[AnnotationParameter] = {
+    val parameters = ArraySeq.newBuilder[AnnotationParameter]
+    var isFirst    = true
+    var sawComma   = false
+
+    ctx.children.asScala.foreach {
+      case pair: ApexParser.ElementValuePairContext =>
+        val separator =
+          if (isFirst) None
+          else if (sawComma) Some(AnnotationParameterSeparator.Comma)
+          else Some(AnnotationParameterSeparator.Whitespace)
+        val value = pair.elementValue()
+        parameters += AnnotationParameter(
+          Some(pair.id().getText),
+          value.getText,
+          separator,
+          Some(pair.id().location),
+          Some(value.location),
+          Some(pair.location)
+        )
+        isFirst = false
+        sawComma = false
+      case node: TerminalNode if node.getSymbol.getType == ApexParser.COMMA =>
+        sawComma = true
+      case _ => ()
+    }
+    parameters.result()
   }
 
   def antlrTypeList(ctx: ApexParser.TypeListContext): ArraySeq[TypeRef] = {

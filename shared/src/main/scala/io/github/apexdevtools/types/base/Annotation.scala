@@ -3,19 +3,24 @@
  */
 package io.github.apexdevtools.types.base
 
+import scala.annotation.nowarn
 import scala.collection.immutable.ArraySeq
 import scala.util.hashing.MurmurHash3
 
 /** Annotation element, name is case-insensitive.
   *
-  * Parameters are available in two forms. `parameters` is the original unparsed string, a
-  * concatenation of the token contents between the parentheses, empty when the annotation was
-  * written without them. `parameterList` is the same content split into located parameters, see
-  * [[AnnotationParameter]]; it is empty when the annotation was written without parentheses and an
-  * empty sequence when they were written but hold nothing.
+  * `parameterList` is the parameter list as written, see [[AnnotationParameter]]. It is empty when
+  * the annotation was written without parentheses and an empty sequence when they were written but
+  * hold nothing.
+  *
+  * `parameters` is the same content as a single unparsed string and is deprecated. It is a
+  * concatenation of token contents, so it cannot represent the separator between two parameters,
+  * which is the whole point of reading them.
   */
+@nowarn("cat=deprecation") // this class necessarily still reads its own deprecated member
 case class Annotation(
   name: String,
+  @deprecated("Lossy, the separator between parameters is not recoverable, use parameterList")
   parameters: Option[String],
   location: Option[Location] = None,
   parameterList: Option[ArraySeq[AnnotationParameter]] = None
@@ -23,17 +28,18 @@ case class Annotation(
   override def equals(obj: Any): Boolean = {
     val other = obj.asInstanceOf[Annotation]
     name.equalsIgnoreCase(other.name) &&
-    parameters.getOrElse("").equalsIgnoreCase(other.parameters.getOrElse(""))
-    // Note: location & parameterList intentionally excluded from equality. Equality is over the
-    // annotation as written, and annotations are compared across producers that populate only
-    // 'parameters', so including parameterList would change set/map behaviour for existing
-    // consumers. It would also be finer than 'parameters' alone, e.g. 'a=1 b=2' and 'a=1b=2' share
-    // a parameters string but not a parameterList.
+    parameters.getOrElse("").equalsIgnoreCase(other.parameters.getOrElse("")) &&
+    parameterList == other.parameterList
+    // Note: location intentionally excluded from equality, see also AnnotationParameter which
+    // excludes its own locations for the same reason.
   }
 
   override def hashCode(): Int = {
-    MurmurHash3.orderedHash(Seq(name.toLowerCase(), parameters.getOrElse("")))
-    // Note: location & parameterList intentionally excluded from hash
+    MurmurHash3.orderedHash(
+      Seq(name.toLowerCase(), parameters.getOrElse("").toLowerCase(), parameterList)
+    )
+    // Note: location intentionally excluded from hash. The parameters string is lowered here to
+    // match the case-insensitive comparison in equals, previously it was not.
   }
 
   override def toString: String = {

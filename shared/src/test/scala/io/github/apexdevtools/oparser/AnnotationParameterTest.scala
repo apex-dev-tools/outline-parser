@@ -7,8 +7,12 @@ import io.github.apexdevtools.types.base.AnnotationParameterSeparator.{Comma, Wh
 import io.github.apexdevtools.types.base.{Annotation, AnnotationParameter, Location}
 import org.scalatest.funspec.AnyFunSpec
 
+import scala.annotation.nowarn
+
 import java.nio.charset.StandardCharsets
 
+// The suite deliberately pins the behaviour of the deprecated 'parameters' string
+@nowarn("cat=deprecation")
 class AnnotationParameterTest extends AnyFunSpec {
 
   private var source: String = ""
@@ -192,12 +196,35 @@ class AnnotationParameterTest extends AnyFunSpec {
   }
 
   describe("equality") {
-    it("ignores the parameter list, as it does the location") {
-      val spaced = annotation("@AuraEnabled(cacheable=true scope='global')")
-      val hand   = Annotation(spaced.name, spaced.parameters)
+    it("still ignores locations") {
+      val first  = annotation("@AuraEnabled(cacheable=true scope='global')")
+      val second = annotation("\n\n  @AuraEnabled(cacheable=true scope='global')")
+      assert(first.location != second.location)
+      assert(first == second)
+      assert(first.hashCode() == second.hashCode())
+    }
+
+    it("uses the parameter list, so a lost separator is no longer equal") {
+      // Both have the same unparsed 'parameters' string, only the structure tells them apart
+      val separated = annotation("@Dummy(a=1 b=2)")
+      val run       = annotation("@Dummy(a=1b=2)")
+      assert(separated.parameters == run.parameters)
+      assert(separated.parameterList != run.parameterList)
+      assert(separated != run)
+    }
+
+    it("does not treat a hand-built annotation as equal to a parsed one") {
+      val parsed = annotation("@AuraEnabled(cacheable=true scope='global')")
+      val hand   = Annotation(parsed.name, parsed.parameters)
       assert(hand.parameterList.isEmpty)
-      assert(spaced == hand)
-      assert(spaced.hashCode() == hand.hashCode())
+      assert(parsed != hand)
+    }
+
+    it("ignores the case of names and values, as the unparsed string does") {
+      val lower = annotation("@AuraEnabled(cacheable=true scope='global')")
+      val upper = annotation("@auraenabled(CACHEABLE=TRUE SCOPE='GLOBAL')")
+      assert(lower == upper)
+      assert(lower.hashCode() == upper.hashCode())
     }
   }
 }
