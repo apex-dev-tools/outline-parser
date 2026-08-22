@@ -6,6 +6,7 @@ package io.github.apexdevtools.oparser
 
 import io.github.apexdevtools.types.base.{
   Annotation,
+  AnnotationParameter,
   Location,
   Modifier,
   QualifiedName,
@@ -68,8 +69,12 @@ trait DeclarationGeneratorHelper {
     LocatableIdToken(token, Location.default)
   }
 
+  /* A parameter here is written as a single unnamed value, which is enough for these tests */
   def toAnnotation(ids: Array[String], parameter: Option[String]): Annotation = {
-    Annotation(toQName(ids).toString, parameter)
+    Annotation(
+      toQName(ids).toString,
+      parameter.map(value => ArraySeq(AnnotationParameter(None, value)))
+    )
   }
 
   def toQName(ids: Array[String]): QualifiedName = {

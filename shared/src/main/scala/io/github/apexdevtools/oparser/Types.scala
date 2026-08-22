@@ -661,7 +661,6 @@ object Parse {
 
     // Collect the tokens between the annotation's parentheses, recording the nesting depth of
     // each so that a nested list can be told apart from the parameter list itself.
-    val builder       = new mutable.StringBuilder()
     val contained     = new ArrayBuffer[(Token, Int)]()
     val hasParameters = tokens(index).exists(_.matches(Tokens.LParenStr))
     if (hasParameters) {
@@ -673,21 +672,17 @@ object Parse {
         } else if (tokens.get(index).matches(Tokens.LParenStr)) {
           nestingCount += 1
         }
-        if (nestingCount > 0) {
-          builder.append(tokens.get(index).contents)
-          contained.append((tokens.get(index), nestingCount))
-        }
+        if (nestingCount > 0) contained.append((tokens.get(index), nestingCount))
         index += 1
       }
     }
-    val parameters    = if (hasParameters) Some(builder.toString()) else None
     val parameterList = if (hasParameters) Some(splitAnnotationParameters(contained)) else None
 
     // Capture full annotation location from @ through parameters
     val endLocation  = if (index > 0) tokens.get(index - 1).location else startLocation
     val fullLocation = Location.span(startLocation, endLocation)
 
-    accum.append(Annotation(qName.toString, parameters, Some(fullLocation), parameterList))
+    accum.append(Annotation(qName.toString, parameterList, Some(fullLocation)))
 
     index
   }

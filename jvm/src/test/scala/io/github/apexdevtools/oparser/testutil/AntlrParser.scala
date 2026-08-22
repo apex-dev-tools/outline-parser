@@ -84,18 +84,9 @@ object AntlrParser {
   }
 
   def antlrAnnotation(ctx: ApexParser.AnnotationContext): Annotation = {
-    val hasParameters = ctx.LPAREN() != null
-    val parameters =
-      if (hasParameters)
-        Some(
-          Option(ctx.elementValue())
-            .map(_.getText)
-            .orElse(Option(ctx.elementValuePairs()).map(_.getText))
-            .getOrElse("")
-        )
-      else None
-    val parameterList = if (hasParameters) Some(antlrAnnotationParameters(ctx)) else None
-    Annotation(ctx.id().getText, parameters, Some(ctx.location), parameterList)
+    val parameterList =
+      if (ctx.LPAREN() != null) Some(antlrAnnotationParameters(ctx)) else None
+    Annotation(ctx.id().getText, parameterList, Some(ctx.location))
   }
 
   /* Build the same parameter model the outline parser produces, so the two can be compared. A
