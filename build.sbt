@@ -49,7 +49,7 @@ lazy val parser = crossProject(JSPlatform, JVMPlatform)
     build       := buildJVM.value,
     Test / fork := true,
     libraryDependencies ++= Seq(
-      "io.github.apex-dev-tools" % "apex-parser"                % "5.1.0" % Test,
+      "io.github.apex-dev-tools" % "apex-parser"                % "5.2.0" % Test,
       "org.scala-lang.modules"  %% "scala-parallel-collections" % "1.0.4" % Test
     ),
     packageOptions += Package.ManifestAttributes(

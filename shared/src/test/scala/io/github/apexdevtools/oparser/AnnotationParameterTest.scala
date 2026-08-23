@@ -7,8 +7,12 @@ import io.github.apexdevtools.types.base.AnnotationParameterSeparator.{Comma, Wh
 import io.github.apexdevtools.types.base.{Annotation, AnnotationParameter, Location}
 import org.scalatest.funspec.AnyFunSpec
 
+import scala.annotation.nowarn
+
 import java.nio.charset.StandardCharsets
 
+// The suite deliberately pins the behaviour of the deprecated 'parameters' string
+@nowarn("cat=deprecation")
 class AnnotationParameterTest extends AnyFunSpec {
 
   private var source: String = ""
@@ -35,15 +39,11 @@ class AnnotationParameterTest extends AnyFunSpec {
 
   describe("presence of a parameter list") {
     it("has none when written without parentheses") {
-      val a = annotation("@AuraEnabled")
-      assert(a.parameters.isEmpty)
-      assert(a.parameterList.isEmpty)
+      assert(annotation("@AuraEnabled").parameterList.isEmpty)
     }
 
     it("has an empty one when written with empty parentheses") {
-      val a = annotation("@AuraEnabled()")
-      assert(a.parameters.contains(""))
-      assert(a.parameterList.exists(_.isEmpty))
+      assert(annotation("@AuraEnabled()").parameterList.exists(_.isEmpty))
     }
   }
 
@@ -174,30 +174,65 @@ class AnnotationParameterTest extends AnyFunSpec {
     }
   }
 
-  describe("the unparsed parameters string") {
-    it("is unchanged for each form") {
-      assert(annotation("@AuraEnabled").parameters.isEmpty)
-      assert(annotation("@AuraEnabled()").parameters.contains(""))
-      assert(annotation("@SuppressWarnings('PMD')").parameters.contains("'PMD'"))
+  describe("rendering") {
+    it("renders the separator that was written") {
+      assert(annotation("@AuraEnabled").toString == "@AuraEnabled")
+      assert(annotation("@AuraEnabled()").toString == "@AuraEnabled()")
+      assert(annotation("@SuppressWarnings('PMD')").toString == "@SuppressWarnings('PMD')")
       assert(
-        annotation("@AuraEnabled(cacheable=true scope='global')").parameters
-          .contains("cacheable=truescope='global'")
+        annotation("@AuraEnabled(cacheable=true scope='global')").toString ==
+          "@AuraEnabled(cacheable=true scope='global')"
       )
       assert(
-        annotation("@AuraEnabled(cacheable=true, scope='global')").parameters
-          .contains("cacheable=true,scope='global'")
+        annotation("@AuraEnabled(cacheable=true, scope='global')").toString ==
+          "@AuraEnabled(cacheable=true,scope='global')"
       )
-      assert(annotation("@Dummy(a=f(1, 2) b=3)").parameters.contains("a=f(1,2)b=3"))
+      assert(
+        annotation("@AuraEnabled(cacheable=true,)").toString == "@AuraEnabled(cacheable=true,)"
+      )
+      assert(annotation("@Dummy(a=f(1, 2) b=3)").toString == "@Dummy(a=f(1,2) b=3)")
+    }
+
+    it("normalises whitespace rather than reproducing the source") {
+      assert(
+        annotation("@AuraEnabled( cacheable = true )").toString == "@AuraEnabled(cacheable=true)"
+      )
+      assert(
+        annotation("@AuraEnabled(cacheable=true\n    scope='global')").toString ==
+          "@AuraEnabled(cacheable=true scope='global')"
+      )
     }
   }
 
   describe("equality") {
-    it("ignores the parameter list, as it does the location") {
-      val spaced = annotation("@AuraEnabled(cacheable=true scope='global')")
-      val hand   = Annotation(spaced.name, spaced.parameters)
-      assert(hand.parameterList.isEmpty)
-      assert(spaced == hand)
-      assert(spaced.hashCode() == hand.hashCode())
+    it("still ignores locations") {
+      val first  = annotation("@AuraEnabled(cacheable=true scope='global')")
+      val second = annotation("\n\n  @AuraEnabled(cacheable=true scope='global')")
+      assert(first.location != second.location)
+      assert(first == second)
+      assert(first.hashCode() == second.hashCode())
+    }
+
+    it("tells apart lists that a flattened string could not") {
+      // Both flatten to the same text, only the structure separates them
+      val separated = annotation("@Dummy(a=1 b=2)")
+      val run       = annotation("@Dummy(a=1b=2)")
+      assert(separated != run)
+    }
+
+    it("tells apart the separator that was used") {
+      assert(annotation("@Dummy(a=1 b=2)") != annotation("@Dummy(a=1, b=2)"))
+    }
+
+    it("does not treat an annotation with no parameter list as equal to one with an empty list") {
+      assert(Annotation("Dummy") != annotation("@Dummy()"))
+    }
+
+    it("ignores the case of names and values") {
+      val lower = annotation("@AuraEnabled(cacheable=true scope='global')")
+      val upper = annotation("@auraenabled(CACHEABLE=TRUE SCOPE='GLOBAL')")
+      assert(lower == upper)
+      assert(lower.hashCode() == upper.hashCode())
     }
   }
 }
