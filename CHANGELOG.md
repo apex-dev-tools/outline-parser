@@ -1,6 +1,6 @@
 # outline-parser - Changelog
 
-## Unreleased
+## 2.1.0 - 2026-08-23
 
 ### API
 
@@ -20,7 +20,8 @@
 
 ### Build & dependencies
 
-- Updated the `apex-parser` test dependency to 5.2.0, which tightens the annotation grammar. The ANTLR reference parser used by the sample comparison now builds a full `parameterList`, so the structured form is compared against a second parser across the sample corpus rather than only being produced.
+- Updated the `apex-parser` dependency to 5.2.0, which tightens the annotation grammar: `build.sbt` (JVM `Test` scope) and `js/npm/package.json` (`^5.2.0`), with `js/npm/package-lock.json` regenerated. The ANTLR reference parser used by the sample comparison now builds a full `parameterList`, so the structured form is compared against a second parser across the sample corpus rather than only being produced.
+  - apex-parser is a test and dev dependency here, so this does not change the published outline-parser artifacts, only the test toolchain.
 
 ## 2.0.0 - 2026-07-03
 
