@@ -13,4 +13,5 @@ trait IBodyDeclaration {
   def id: IdWithLocation
   def bodyLocation: Option[Location]
   def blockLocation: Option[Location]
+  def docLocation: Option[Location] = None
 }

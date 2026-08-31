@@ -13,6 +13,7 @@ import scala.collection.immutable.ArraySeq
 trait ITypeDeclaration extends TypeRef with AnnotationsAndModifiers {
   def paths: Array[String]
   def location: Location
+  def docLocation: Option[Location] = None
 
   def id: IdWithLocation
 

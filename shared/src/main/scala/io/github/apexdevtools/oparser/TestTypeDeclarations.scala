@@ -36,7 +36,8 @@ sealed class TestTypeDeclaration(
   val nature: TypeNature,
   _enclosing: IMutableTestTypeDeclaration
 ) extends IMutableTestTypeDeclaration {
-  var _location: Location = _
+  var _location: Location            = _
+  var _docLocation: Option[Location] = None
 
   var _id: IdWithLocation                    = _
   var _extendsTypeRef: TypeRef               = _
@@ -51,8 +52,9 @@ sealed class TestTypeDeclaration(
   val _properties: mutable.ArrayBuffer[PropertyDeclaration]      = mutable.ArrayBuffer()
   val _fields: mutable.ArrayBuffer[FieldDeclaration]             = mutable.ArrayBuffer()
 
-  override def paths: Array[String] = Array(path)
-  override def location: Location   = _location
+  override def paths: Array[String]          = Array(path)
+  override def location: Location            = _location
+  override def docLocation: Option[Location] = _docLocation
 
   override def id: IdWithLocation = _id
 
@@ -77,6 +79,7 @@ sealed class TestTypeDeclaration(
 
   override def setId(id: IdWithLocation): Unit                      = _id = id
   override def setLocation(location: Location): Unit                = _location = location
+  override def setDocLocation(location: Location): Unit             = _docLocation = Some(location)
   override def setExtends(typeRef: TypeRef): Unit                   = _extendsTypeRef = typeRef
   override def setImplements(typeList: ArraySeq[TypeRef]): Unit     = _implementsTypeList = typeList
   override def setModifiers(modifiers: Array[Modifier]): Unit       = _modifiers = modifiers

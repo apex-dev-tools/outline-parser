@@ -17,6 +17,7 @@ trait IMutableTypeDeclaration extends ITypeDeclaration with MutableTypeAppendabl
   // Setters for standard attributes of the type
   def setId(id: IdWithLocation): Unit
   def setLocation(location: Location): Unit
+  def setDocLocation(location: Location): Unit = {}
   def setExtends(typeRef: TypeRef): Unit
   def setImplements(typeList: ArraySeq[TypeRef]): Unit
   def setModifiers(modifiers: Array[Modifier]): Unit
