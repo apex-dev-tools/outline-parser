@@ -145,6 +145,31 @@ class ApexDocLocationTest extends AnyFunSpec {
       assert(declaration.fields.head.docLocation.isEmpty)
     }
 
+    it("does not leak trailing docs from inner type bodies to sibling declarations") {
+      val contents =
+        """class Outer {
+          |  class InnerClass { /** trailing class doc */ }
+          |  void afterClass() {}
+          |  interface InnerInterface { /** trailing interface doc */ }
+          |  class AfterInterface {}
+          |  enum InnerEnum { Value, /** trailing enum doc */ }
+          |  void afterEnum() {}
+          |  class Mid {
+          |    class Leaf { /** trailing leaf doc */ }
+          |    void midMethod() {}
+          |  }
+          |}
+          |""".stripMargin
+      val declaration    = parse(contents)
+      val afterInterface = declaration.innerTypes.find(_.id.name == "AfterInterface").get
+      val mid            = declaration.innerTypes.find(_.id.name == "Mid").get
+
+      assert(declaration.methods.find(_.id.name == "afterClass").get.docLocation.isEmpty)
+      assert(afterInterface.docLocation.isEmpty)
+      assert(declaration.methods.find(_.id.name == "afterEnum").get.docLocation.isEmpty)
+      assert(mid.methods.find(_.id.name == "midMethod").get.docLocation.isEmpty)
+    }
+
     it("uses only the last adjacent doc comment") {
       val contents = "/** old */\n/** current */\nclass Doc {}"
       assert(source(contents, parse(contents).docLocation).contains("/** current */"))

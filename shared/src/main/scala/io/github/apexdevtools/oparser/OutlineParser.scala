@@ -209,6 +209,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.RBraceStr =>
               if (!tokens.isEmpty)
                 throw new Exception("Unexpected '}'")
+              clearPendingDocLocation()
               (false, None)
             case _ =>
               tokens.append(t); (true, None)
@@ -458,6 +459,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               tokens.clear()
               (true, None)
             case Tokens.RBraceStr =>
+              clearPendingDocLocation()
               (false, None)
             case _ =>
               tokens.append(t); (true, None)
@@ -515,6 +517,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.CommaStr =>
               tokens.clear(); (true, None)
             case Tokens.RBraceStr =>
+              clearPendingDocLocation()
               tokens.clear(); (false, None)
             case _ =>
               tokens.append(t); (true, None)
@@ -678,7 +681,8 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
       consumeMultilineComment()
       buffer.clear()
       // `/**/` is an ordinary block comment because its opening and closing delimiters overlap;
-      // the shortest ApexDoc form is `/***/`.
+      // the shortest ApexDoc form is `/***/`. Requiring empty tokens also ensures that previously
+      // unclaimed declaration syntax prevents a later comment from becoming that declaration's doc.
       if (isDocComment && byteOffset - startPosition.byteOffset > 4 && tokens.isEmpty)
         pendingDocLocation = Some(Location(startPosition, Position(line, lineOffset, byteOffset)))
       else
