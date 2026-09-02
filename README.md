@@ -57,6 +57,16 @@ The cross-platform `io.github.apexdevtools.api.Rule` API exposes two description
 
 For compatibility, rules implemented before `id()` was added inherit an implementation that returns `name()`. `Issue.asString()` and `Issue.toString()` continue to use `name()`, so adding a distinct ID does not change existing text output.
 
+### ApexDoc API
+
+`ITypeDeclaration.docLocation` and `IBodyDeclaration.docLocation` report the location of the ApexDoc comment (`/** ... */`) written immediately before a declaration, as an `Option[Location]` that is `None` when there is none. `IMutableTypeDeclaration.setDocLocation` is how the parser records it.
+
+Only the location is captured; the documentation text is not retained. Read it from the source with the byte offsets on the returned `Location`.
+
+A doc comment associates with the next declaration across whitespace and annotations, so `/** doc */ @IsTest class Doc {}` associates just as `/** doc */ class Doc {}` does. A `//` line comment or an ordinary `/* ... */` block comment written between the doc comment and the declaration discards the doc — the nearest preceding comment wins. `/**/` is an ordinary block comment rather than ApexDoc, because its delimiters overlap; the shortest ApexDoc form is `/***/`.
+
+For compatibility, both readers default to `None` and `setDocLocation` defaults to a no-op, so implementations written before this API was added still compile and run. The trade-off is that an `IMutableTypeDeclaration` overriding neither member silently reports no docs, with no compile-time signal; a type declaration that wants ApexDoc must override both.
+
 ## Development
 
 ### Building

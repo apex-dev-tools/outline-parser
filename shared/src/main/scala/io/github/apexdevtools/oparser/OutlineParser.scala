@@ -27,14 +27,15 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
   ctx: Ctx
 ) {
 
-  private var charOffset                        = 0
-  private var byteOffset                        = 0
-  private var currentChar: Char                 = 0
-  private var line                              = 0
-  private var lineOffset                        = 0
-  private val length                            = contents.length
-  private var finished                          = false
-  private var typeDeclaration: Option[TypeDecl] = None
+  private var charOffset                           = 0
+  private var byteOffset                           = 0
+  private var currentChar: Char                    = 0
+  private var line                                 = 0
+  private var lineOffset                           = 0
+  private val length                               = contents.length
+  private var finished                             = false
+  private var typeDeclaration: Option[TypeDecl]    = None
+  private var pendingDocLocation: Option[Location] = None
 
   private val buffer = new Buffer(contents)
   private val tokens = new Tokens()
@@ -148,6 +149,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.LBraceStr =>
               val classTypeDeclaration = factory.create(ctx, CLASS_NATURE, path, None)
               Parse.parseClassType(classTypeDeclaration, tokens)
+              claimDocLocation().foreach(classTypeDeclaration.setDocLocation)
               typeDeclaration = Some(classTypeDeclaration)
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
@@ -184,10 +186,14 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
               if (!tokens.isEmpty) {
                 Parse.parseClassMember(classTypeDeclaration, tokens, t) match {
                   case (_, cms) =>
-                    cms.foreach(
-                      _.setLocation(tokens.head.location.startPosition, t.location.endPosition)
-                    )
+                    val docLocation = claimDocLocation()
+                    cms.foreach(member => {
+                      member.setLocation(tokens.head.location.startPosition, t.location.endPosition)
+                      docLocation.foreach(member.setDocLocation)
+                    })
                 }
+              } else {
+                clearPendingDocLocation()
               }
               tokens.clear()
               (true, None)
@@ -203,6 +209,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.RBraceStr =>
               if (!tokens.isEmpty)
                 throw new Exception("Unexpected '}'")
+              clearPendingDocLocation()
               (false, None)
             case _ =>
               tokens.append(t); (true, None)
@@ -214,6 +221,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
   private def consumeClassMember(classTypeDeclaration: TypeDecl, t: Token): Unit = {
     Parse.parseClassMember(classTypeDeclaration, tokens, t) match {
       case (true, classMembers) if classMembers.nonEmpty =>
+        val docLocation        = claimDocLocation()
         val startBlockPosition = Position(line, lineOffset, byteOffset)
         val startPosition = tokens(0).map(_.location.startPosition).getOrElse(startBlockPosition)
 
@@ -225,18 +233,26 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           consumeBlock()
           consumeTrailingNewline()
         }
-        classMembers.foreach(m =>
-          m.setLocations(startPosition, startBlockPosition, Position(line, lineOffset, byteOffset))
-        )
+        classMembers.foreach(member => {
+          member.setLocations(
+            startPosition,
+            startBlockPosition,
+            Position(line, lineOffset, byteOffset)
+          )
+          docLocation.foreach(member.setDocLocation)
+        })
       case (true, _) =>
+        clearPendingDocLocation()
         tokens.clear()
         consumeBlock()
       case (false, _) =>
+        clearPendingDocLocation()
         consumeBlock()
     }
   }
 
   private def consumePropertyDeclaration(): Array[PropertyBlock] = {
+    clearPendingDocLocation()
     val propertyBlocks = mutable.ArrayBuffer[PropertyBlock]()
     tokenParseHelper(
       discardCommentsAndWhitespace = true,
@@ -263,13 +279,16 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           }
       }
     )
+    clearPendingDocLocation()
     propertyBlocks.toArray
   }
 
   private def consumeInnerType(ctd: TypeDecl, token: Token): Unit = {
+    val docLocation = claimDocLocation()
     if (token.matches(Tokens.ClassStr)) {
       val innerClass = factory.create(ctx, CLASS_NATURE, ctd.paths.head, Some(ctd))
       Parse.parseClassType(innerClass, tokens)
+      docLocation.foreach(innerClass.setDocLocation)
       val startPosition = token.location.startPosition
       tokens.clear()
       consumeClassBody(innerClass)
@@ -279,6 +298,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     } else if (token.matches(Tokens.InterfaceStr)) {
       val innerInterface = factory.create(ctx, INTERFACE_NATURE, ctd.paths.head, Some(ctd))
       Parse.parseInterfaceType(innerInterface, tokens)
+      docLocation.foreach(innerInterface.setDocLocation)
       val startPosition = token.location.startPosition
       tokens.clear()
       consumeInterfaceBody(innerInterface)
@@ -288,6 +308,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     } else if (token.matches(Tokens.EnumStr)) {
       val innerEnum = factory.create(ctx, ENUM_NATURE, ctd.paths.head, Some(ctd))
       Parse.parseEnumType(innerEnum, tokens)
+      docLocation.foreach(innerEnum.setDocLocation)
       val startPosition = token.location.startPosition
       tokens.clear()
       consumeEnumBody(innerEnum)
@@ -344,6 +365,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
   }
 
   private def consumeBlock(): Unit = {
+    clearPendingDocLocation()
     var continue = true
     var indent   = 1
 
@@ -369,6 +391,8 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           consumeCharacter(capture = false)
       }
 
+      clearPendingDocLocation()
+
       if (continue) {
         if (atEnd())
           throw new Exception("End of file")
@@ -391,6 +415,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.LBraceStr =>
               val interfaceTypeDeclaration = factory.create(ctx, INTERFACE_NATURE, path, None)
               Parse.parseInterfaceType(interfaceTypeDeclaration, tokens)
+              claimDocLocation().foreach(interfaceTypeDeclaration.setDocLocation)
               typeDeclaration = Some(interfaceTypeDeclaration)
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
@@ -422,17 +447,19 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.LParenStr =>
               tokens.append(t); collectParenthesisFragment(); (true, None)
             case Tokens.SemicolonStr =>
-              Parse
-                .parseInterfaceMember(interfaceTypeDeclaration, tokens)
-                .foreach(
-                  _.setLocation(
-                    tokens.head.location.startPosition,
-                    Position(line, lineOffset, byteOffset)
-                  )
+              val members     = Parse.parseInterfaceMember(interfaceTypeDeclaration, tokens)
+              val docLocation = claimDocLocation()
+              members.foreach(member => {
+                member.setLocation(
+                  tokens.head.location.startPosition,
+                  Position(line, lineOffset, byteOffset)
                 )
+                docLocation.foreach(member.setDocLocation)
+              })
               tokens.clear()
               (true, None)
             case Tokens.RBraceStr =>
+              clearPendingDocLocation()
               (false, None)
             case _ =>
               tokens.append(t); (true, None)
@@ -453,6 +480,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.LBraceStr =>
               val enumTypeDeclaration = factory.create(ctx, ENUM_NATURE, path, None)
               Parse.parseEnumType(enumTypeDeclaration, tokens)
+              claimDocLocation().foreach(enumTypeDeclaration.setDocLocation)
               typeDeclaration = Some(enumTypeDeclaration)
               val startPosition = tokens.head.location.startPosition
               tokens.clear()
@@ -479,7 +507,9 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           throw new Exception("End of file")
         case Some(t: LocatableIdToken) =>
           tokens.append(t)
-          Parse.parseEnumMember(enumTypeDeclaration, tokens)
+          val members     = Parse.parseEnumBodyMember(enumTypeDeclaration, tokens)
+          val docLocation = claimDocLocation()
+          members.foreach(member => docLocation.foreach(member.setDocLocation))
           tokens.clear()
           (true, None)
         case Some(t: NonIdToken) =>
@@ -487,6 +517,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
             case Tokens.CommaStr =>
               tokens.clear(); (true, None)
             case Tokens.RBraceStr =>
+              clearPendingDocLocation()
               tokens.clear(); (false, None)
             case _ =>
               tokens.append(t); (true, None)
@@ -508,6 +539,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
     line = 1
     buffer.clear()
     tokens.clear()
+    pendingDocLocation = None
   }
 
   private def peekMatch(peek: Char): Boolean = {
@@ -633,6 +665,7 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
 
     // Current Char is expected to be ForwardSlash
     if (peekMatch(Tokens.ForwardSlash)) {
+      clearPendingDocLocation()
       buffer.clear()
       consumeCharacter(false)
       consumeCharacter(false)
@@ -640,16 +673,33 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
       buffer.clear()
       true
     } else if (peekMatch(Tokens.Asterisk)) {
+      val isDocComment  = peekMatch(2, Tokens.Asterisk)
+      val startPosition = Position(line, lineOffset, byteOffset)
       buffer.clear()
       consumeCharacter(false)
       consumeCharacter(false)
       consumeMultilineComment()
       buffer.clear()
+      // `/**/` is an ordinary block comment because its opening and closing delimiters overlap;
+      // the shortest ApexDoc form is `/***/`. Requiring empty tokens also ensures that previously
+      // unclaimed declaration syntax prevents a later comment from becoming that declaration's doc.
+      if (isDocComment && byteOffset - startPosition.byteOffset > 4 && tokens.isEmpty)
+        pendingDocLocation = Some(Location(startPosition, Position(line, lineOffset, byteOffset)))
+      else
+        clearPendingDocLocation()
       true
     } else {
       false
     }
   }
+
+  private def claimDocLocation(): Option[Location] = {
+    val location = pendingDocLocation
+    pendingDocLocation = None
+    location
+  }
+
+  private def clearPendingDocLocation(): Unit = pendingDocLocation = None
 
   private def consumeNewline(capture: Boolean = false): Boolean = {
     if (currentChar == Tokens.CarriageReturn && peekMatch(Tokens.Newline)) {

@@ -79,6 +79,12 @@ sealed trait BodyDeclaration extends IBodyDeclaration {
   private var endBlockLineOffset: Int   = _
   private var endBlockByteOffset: Int   = _
 
+  private var _docLocation: Option[Location] = None
+
+  override def docLocation: Option[Location] = _docLocation
+
+  def setDocLocation(location: Location): Unit = _docLocation = Some(location)
+
   def bodyLocation: Option[Location] = {
     endByteOffset match {
       case 0 => None
@@ -379,12 +385,19 @@ object Parse {
   }
 
   def parseEnumMember(etd: IMutableTypeDeclaration, tokens: Tokens): Seq[LocatableIdToken] = {
+    parseEnumBodyMember(etd, tokens).map(_.id)
+  }
+
+  private[oparser] def parseEnumBodyMember(
+    etd: IMutableTypeDeclaration,
+    tokens: Tokens
+  ): Seq[FieldDeclaration] = {
     if (tokens.isEmpty) return Seq.empty
 
     val constant = LocatableIdToken(tokens.head.contents, tokens.head.location)
     val field    = FieldDeclaration(Array(), Array(Modifier(Tokens.StaticStr)), etd, constant)
     etd.appendField(field)
-    Seq(constant)
+    Seq(field)
   }
 
   private def toQualifiedName(tr: UnresolvedTypeRef): QualifiedName = {
