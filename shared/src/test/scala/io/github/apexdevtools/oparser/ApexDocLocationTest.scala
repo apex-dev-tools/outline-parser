@@ -170,6 +170,38 @@ class ApexDocLocationTest extends AnyFunSpec {
       assert(mid.methods.find(_.id.name == "midMethod").get.docLocation.isEmpty)
     }
 
+    it("associates a doc written before annotations but drops one written after") {
+      val contents =
+        """class Doc {
+          |  /** method */
+          |  @AuraEnabled
+          |  void run() {}
+          |  /** field */
+          |  @AuraEnabled
+          |  Integer value;
+          |  @AuraEnabled
+          |  /** after annotations */
+          |  void afterAnnotation() {}
+          |}
+          |""".stripMargin
+      val declaration = parse(contents)
+
+      assert(
+        source(contents, declaration.methods.find(_.id.name == "run").get.docLocation)
+          .contains("/** method */")
+      )
+      assert(source(contents, declaration.fields.head.docLocation).contains("/** field */"))
+      assert(declaration.methods.find(_.id.name == "afterAnnotation").get.docLocation.isEmpty)
+    }
+
+    it("captures a doc abutting the declaration or holding a block comment opener") {
+      val abutting = "/** doc */class Doc{}"
+      val opener   = "/** a /* nested-ish */\nclass Doc {}"
+
+      assert(source(abutting, parse(abutting).docLocation).contains("/** doc */"))
+      assert(source(opener, parse(opener).docLocation).contains("/** a /* nested-ish */"))
+    }
+
     it("uses only the last adjacent doc comment") {
       val contents = "/** old */\n/** current */\nclass Doc {}"
       assert(source(contents, parse(contents).docLocation).contains("/** current */"))
@@ -192,6 +224,15 @@ class ApexDocLocationTest extends AnyFunSpec {
       assert(tpe.docLocation.isEmpty)
       tpe.setDocLocation(Location.default)
       assert(tpe.docLocation.isEmpty)
+    }
+
+    it("keeps parseEnumMember reporting the ids of the members it appends") {
+      val etd    = TestClassFactory.create("", ENUM_NATURE, "Doc.cls", None)
+      val tokens = new Tokens
+      tokens.append(LocatableIdToken("Value", Location.default))
+
+      assert(Parse.parseEnumMember(etd, tokens).map(_.name) == Seq("Value"))
+      assert(etd.fields.map(_.id.name) == ArraySeq("Value"))
     }
   }
 

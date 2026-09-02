@@ -233,14 +233,14 @@ final class OutlineParser[TypeDecl <: IMutableTypeDeclaration, Ctx](
           consumeBlock()
           consumeTrailingNewline()
         }
-        classMembers.foreach { member =>
+        classMembers.foreach(member => {
           member.setLocations(
             startPosition,
             startBlockPosition,
             Position(line, lineOffset, byteOffset)
           )
           docLocation.foreach(member.setDocLocation)
-        }
+        })
       case (true, _) =>
         clearPendingDocLocation()
         tokens.clear()

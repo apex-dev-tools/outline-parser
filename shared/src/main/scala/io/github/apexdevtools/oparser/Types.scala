@@ -385,13 +385,13 @@ object Parse {
   }
 
   def parseEnumMember(etd: IMutableTypeDeclaration, tokens: Tokens): Seq[LocatableIdToken] = {
-    parseEnumBodyMember(etd, tokens).map(_.id.asInstanceOf[LocatableIdToken])
+    parseEnumBodyMember(etd, tokens).map(_.id)
   }
 
   private[oparser] def parseEnumBodyMember(
     etd: IMutableTypeDeclaration,
     tokens: Tokens
-  ): Seq[BodyDeclaration] = {
+  ): Seq[FieldDeclaration] = {
     if (tokens.isEmpty) return Seq.empty
 
     val constant = LocatableIdToken(tokens.head.contents, tokens.head.location)

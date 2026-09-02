@@ -1,5 +1,16 @@
 # outline-parser - Changelog
 
+## Unreleased
+
+### API
+
+- Added `ITypeDeclaration.docLocation` and `IBodyDeclaration.docLocation`, which report the location of the ApexDoc comment (`/** ... */`) immediately preceding a declaration, and `IMutableTypeDeclaration.setDocLocation` for the parser to record it. All three have defaults — the readers return `None` and the setter is a no-op — so the change is source and binary compatible on both JVM and Scala.js and existing implementations continue to compile and run unchanged.
+  - Only the location is stored. The parser does not retain the documentation text; read it from the source using the returned byte offsets.
+  - A doc comment is associated with the next declaration across whitespace and annotations, so both `/** doc */ class Doc {}` and `/** doc */ @IsTest class Doc {}` associate. Two behaviours here are deliberate rather than oversights:
+    - A `//` line comment or an ordinary `/* ... */` block comment written between the doc comment and the declaration discards the doc. The nearest preceding comment wins, so an intervening comment means the declaration has no ApexDoc.
+    - A third-party `IMutableTypeDeclaration` that overrides neither `docLocation` nor `setDocLocation` silently reports no docs. This is the cost of the defaults keeping the change compatible: there is no compile-time signal that a type declaration is discarding the locations the parser hands it.
+  - `/**/` is an ordinary block comment, not ApexDoc, because its opening and closing delimiters overlap. The shortest ApexDoc form is `/***/`.
+
 ## 2.1.0 - 2026-08-23
 
 ### API
