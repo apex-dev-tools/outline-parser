@@ -1,6 +1,6 @@
 # outline-parser - Changelog
 
-## Unreleased
+## 2.2.0 - 2026-09-03
 
 ### API
 
